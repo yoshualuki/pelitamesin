@@ -1,0 +1,55 @@
+
+.alert-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050; /* Pastikan di atas elemen lain */
+}
+
+.alert {
+    margin-bottom: 10px; /* Jarak antar alert */
+    display: none; /* Sembunyikan alert secara default */
+}
+
+.alert.show {
+    display: block; /* Tampilkan alert saat kelas 'show' ditambahkan */
+}
+
+.alertfade {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.fade.show {
+    opacity: 1;
+}
+
+.slide-fade-in {
+    animation: slideFadeIn 0.5s forwards;
+}
+
+.slide-fade-out {
+    animation: slideFadeOut 0.5s forwards;
+}
+
+@keyframes slideFadeIn {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideFadeOut {
+    from {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+}
