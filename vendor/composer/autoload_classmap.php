@@ -10,6 +10,7 @@ return array(
     'App\\Http\\Controllers\\Admin\\AdminController' => $baseDir . '/app/Http/Controllers/Admin/AdminController.php',
     'App\\Http\\Controllers\\Admin\\AdminProductController' => $baseDir . '/app/Http/Controllers/Admin/AdminProductController.php',
     'App\\Http\\Controllers\\Admin\\AdminUserController' => $baseDir . '/app/Http/Controllers/Admin/AdminUserController.php',
+    'App\\Http\\Controllers\\Admin\\InventoryController' => $baseDir . '/app/Http/Controllers/Admin/InventoryController.php',
     'App\\Http\\Controllers\\Admin\\OrderAdminController' => $baseDir . '/app/Http/Controllers/Admin/OrderAdminController.php',
     'App\\Http\\Controllers\\Admin\\ReturAdminController' => $baseDir . '/app/Http/Controllers/Admin/ReturAdminController.php',
     'App\\Http\\Controllers\\Auth\\AuthController' => $baseDir . '/app/Http/Controllers/Auth/AuthController.php',

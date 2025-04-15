@@ -338,33 +338,75 @@
         // Initialize toasts
         const successToast = new bootstrap.Toast(document.getElementById('successToast'));
         const errorToast = new bootstrap.Toast(document.getElementById('errorToast'));
-        
-        // Date range picker
-        $('.date-range-picker').daterangepicker({
-            opens: 'left',
-            autoUpdateInput: false,
-            locale: {
-                format: 'DD/MM/YYYY',
-                applyLabel: 'Terapkan',
-                cancelLabel: 'Batal',
-                fromLabel: 'Dari',
-                toLabel: 'Sampai',
-                customRangeLabel: 'Custom',
-                daysOfWeek: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
-                monthNames: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
-                firstDay: 1
+        // Pastikan daterangepicker tersedia
+        if (typeof $.fn.daterangepicker === 'function') {
+            $('.date-range-picker').daterangepicker({
+                opens: 'left',
+                autoUpdateInput: false,
+                locale: {
+                    format: 'DD/MM/YYYY',
+                    applyLabel: 'Terapkan',
+                    cancelLabel: 'Batal',
+                    fromLabel: 'Dari',
+                    toLabel: 'Sampai',
+                    customRangeLabel: 'Custom',
+                    daysOfWeek: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
+                    monthNames: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+                                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
+                    firstDay: 1
+                }
+            });
+
+            $('.date-range-picker').on('apply.daterangepicker', function(ev, picker) {
+                $(this).val(picker.startDate.format('DD/MM/YYYY') + ' - ' + picker.endDate.format('DD/MM/YYYY'));
+                
+                // Kirim filter ke server
+                const dates = {
+                    start_date: picker.startDate.format('YYYY-MM-DD'),
+                    end_date: picker.endDate.format('YYYY-MM-DD')
+                };
+                
+                // Reload table dengan parameter filter
+                reloadOrdersTable(dates);
+            });
+
+            $('.date-range-picker').on('cancel.daterangepicker', function(ev, picker) {
+                $(this).val('');
+                
+                // Hapus filter tanggal
+                reloadOrdersTable({ clear_date_filter: true });
+            });
+        } else {
+            console.error('DateRangePicker not loaded!');
+            // Fallback: tampilkan input biasa
+            $('.date-range-picker').attr('type', 'text');
+        }
+
+        function reloadOrdersTable(params = {}) {
+            // Gabungkan dengan filter yang ada
+            const queryParams = new URLSearchParams(window.location.search);
+            
+            // Tambahkan parameter baru
+            for (const key in params) {
+                if (params[key] !== undefined) {
+                    queryParams.set(key, params[key]);
+                }
             }
-        });
-
-        $('.date-range-picker').on('apply.daterangepicker', function(ev, picker) {
-            $(this).val(picker.startDate.format('DD/MM/YYYY') + ' - ' + picker.endDate.format('DD/MM/YYYY'));
-            // You can add AJAX call here to filter orders by date range
-        });
-
-        $('.date-range-picker').on('cancel.daterangepicker', function(ev, picker) {
-            $(this).val('');
-            // You can add AJAX call here to remove date filter
-        });
+            
+            // Hapus parameter jika clear filter
+            if (params.clear_date_filter) {
+                queryParams.delete('start_date');
+                queryParams.delete('end_date');
+            }
+            
+            // Reload halaman dengan parameter baru
+            window.location.search = queryParams.toString();
+            
+            // Atau gunakan AJAX untuk update table saja:
+            // $.get(window.location.pathname + '?' + queryParams.toString(), function(data) {
+            //     $('#ordersTable').html($(data).find('#ordersTable').html());
+            // });
+        }
 
         const orderDetailModal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
         let currentOrderId = null;

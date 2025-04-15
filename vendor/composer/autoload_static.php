@@ -573,6 +573,7 @@ class ComposerStaticInit6c9cbbc39914369dca9a20c2311c107e
         'App\\Http\\Controllers\\Admin\\AdminController' => __DIR__ . '/../..' . '/app/Http/Controllers/Admin/AdminController.php',
         'App\\Http\\Controllers\\Admin\\AdminProductController' => __DIR__ . '/../..' . '/app/Http/Controllers/Admin/AdminProductController.php',
         'App\\Http\\Controllers\\Admin\\AdminUserController' => __DIR__ . '/../..' . '/app/Http/Controllers/Admin/AdminUserController.php',
+        'App\\Http\\Controllers\\Admin\\InventoryController' => __DIR__ . '/../..' . '/app/Http/Controllers/Admin/InventoryController.php',
         'App\\Http\\Controllers\\Admin\\OrderAdminController' => __DIR__ . '/../..' . '/app/Http/Controllers/Admin/OrderAdminController.php',
         'App\\Http\\Controllers\\Admin\\ReturAdminController' => __DIR__ . '/../..' . '/app/Http/Controllers/Admin/ReturAdminController.php',
         'App\\Http\\Controllers\\Auth\\AuthController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/AuthController.php',

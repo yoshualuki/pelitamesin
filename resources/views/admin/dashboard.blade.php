@@ -160,7 +160,7 @@
                                     @case('cancelled') Dibatalkan @break
                                     @case('partially_refunded') Pengembalian Sebagian @break
                                     @case('refunded') Dikembalikan @break
-                                    @default {{ ucfirst($order->status) }} @endswitch
+                                    @default {{ ucfirst($status['status']) }} @endswitch
                                 </span>
                             </div>
                             <div class="font-weight-bold">
