@@ -55,7 +55,7 @@ class Order extends Model
         'updated_at' => 'datetime',
         // tambahkan field datetime lainnya jika ada
     ];
-    
+
     // Status constants
     const STATUS_WAITING_PAYMENT = 'waiting_payment';
     const STATUS_WAITING_CONFIRMATION = 'waiting_confirmation';
@@ -71,18 +71,18 @@ class Order extends Model
     {
         return $this->hasMany(OrderDetail::class, 'id', 'id');
     }
-    
+
     public function customer()
     {
         return $this->belongsTo(User::class);
     }
-    
+
     // Define relationship with products through order items
     public function products()
     {
         return $this->belongsToMany(Product::class, 'order_details')
-                   ->withPivot('quantity', 'price')
-                   ->withTimestamps();
+            ->withPivot('quantity', 'price')
+            ->withTimestamps();
     }
 
     public function user()
@@ -103,14 +103,14 @@ class Order extends Model
     // Helper methods
     public function canRequestRefund()
     {
-        return $this->status === self::STATUS_COMPLETED && 
-               $this->completed_at &&
-               $this->completed_at->diffInDays(now()) <= 14;
+        return $this->status === self::STATUS_COMPLETED &&
+            $this->completed_at &&
+            $this->completed_at->diffInDays(now()) <= 14;
     }
 
     public function getRefundableItems()
     {
-        return $this->items()->whereDoesntHave('refunds', function($query) {
+        return $this->items()->whereDoesntHave('refunds', function ($query) {
             $query->where('status', '!=', 'rejected');
         })->get();
     }

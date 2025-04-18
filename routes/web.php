@@ -127,8 +127,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/orders', [OrderAdminController::class, 'orders'])->name('orders');
     Route::get('/orders/{id}', [OrderAdminController::class, 'showOrder'])->name('orders.show');
     Route::put('/orders/{id}/confirm', [OrderAdminController::class, 'confirmOrder'])->name('orders.confirm');
-    Route::put('/orders/{id}/ship', [OrderAdminController::class, 'shipOrder'])->name('orders.ship');
+    Route::put('/orders/{order}/ship', [OrderAdminController::class, 'updateShipping'])->name('orders.ship');
     Route::put('/orders/{id}/complete', [OrderAdminController::class, 'completeOrder'])->name('orders.complete');
+    Route::get('/orders/{id}/shipping-info', [OrderAdminController::class, 'getShippingInfo'])
+        ->name('admin.orders.shipping-info');
 
     Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
     // inventory

@@ -96,30 +96,26 @@ class OrderAdminController extends Controller implements HasMiddleware
     /**
      * Input resi pengiriman
      */
-    public function shipOrder(Request $request, $id)
+    public function updateShipping(Request $request, $orderId)
     {
-        $request->validate([
-            'tracking_number' => 'required|string',
-            'shipping_company' => 'required|string'
-        ]);
+        try {
+            $order = Order::findOrFail($orderId);
 
-        $order = Order::findOrFail($id);
+            $order->update([
+                'tracking_number' => $request->shipping_number,
+                'status' => 'shipped'
+            ]);
 
-        if ($order->status != 'confirmed') {
-            return redirect()->back()->with('error', 'Pesanan tidak dapat dikirim karena belum dikonfirmasi.');
+            return response()->json([
+                'success' => true,
+                'message' => 'Nomor resi berhasil disimpan!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyimpan nomor resi: ' . $e->getMessage()
+            ], 500);
         }
-
-        $order->update([
-            'status' => 'shipped',
-            'tracking_number' => $request->tracking_number,
-            'shipping_company' => $request->shipping_company,
-            'shipped_at' => now()
-        ]);
-
-        // Kirim notifikasi ke customer
-        // ...
-
-        return redirect()->route('admin.orders')->with('success', 'Resi pengiriman berhasil disimpan.');
     }
 
     /**
@@ -139,5 +135,17 @@ class OrderAdminController extends Controller implements HasMiddleware
         ]);
 
         return redirect()->route('admin.orders')->with('success', 'Pesanan berhasil diselesaikan.');
+    }
+    /**
+     * Get shipping information for an order
+     */
+    public function getShippingInfo($id)
+    {
+        $order = Order::findOrFail($id);
+
+        return response()->json([
+            'courier' => $order->courier,
+            'service' => $order->service
+        ]);
     }
 }
