@@ -343,6 +343,36 @@
             </div>
         </div>
 
+        <!-- Cancel Order Modal -->
+        <div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title"><i class="fas fa-times-circle me-2"></i> Batalkan Pesanan</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+                    <form id="cancelForm" method="POST">
+                        @csrf
+                        @method('PUT')
+                        <div class="modal-body py-4">
+                            <div class="mb-3">
+                                <label for="cancel_reason" class="form-label">Alasan Pembatalan</label>
+                                <textarea class="form-control" id="cancel_reason" name="cancel_reason" rows="3" required></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-times-circle me-1"></i> Batalkan Pesanan
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+
         <!-- Success Toast Notification -->
         <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
             <div id="successToast" class="toast align-items-center text-white bg-success" role="alert"
@@ -682,6 +712,133 @@
                     });
                 });
 
+
+                // Cancel order flow
+                const cancelModal = new bootstrap.Modal(document.getElementById('cancelModal'));
+
+                $('.cancel-btn').click(function() {
+                    currentOrderId = $(this).data('id');
+                    $('#cancelForm').attr('action', `/admin/orders/${currentOrderId}/cancel`);
+                    cancelModal.show();
+                });
+
+                $('#cancelForm').submit(function(e) {
+                    e.preventDefault();
+
+                    const form = $(this);
+                    const url = form.attr('action');
+                    const formData = form.serialize();
+                    const submitBtn = form.find('button[type="submit"]');
+
+                    $.ajax({
+                        url: url,
+                        type: 'PUT',
+                        data: formData,
+                        beforeSend: function() {
+                            submitBtn.prop('disabled', true).html(
+                                '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Memproses...'
+                            );
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                const row = $('#order-row-' + currentOrderId);
+
+                                // Update status badge
+                                row.find('.badge')
+                                    .removeClass('bg-primary bg-secondary bg-warning')
+                                    .addClass('bg-danger')
+                                    .html('<i class="fas fa-times-circle me-1"></i> Dibatalkan');
+
+                                // Remove action buttons
+                                row.find('.cancel-btn, .confirm-btn, .shipping-btn').closest('li')
+                                    .remove();
+
+                                // Show success message
+                                $('#successMessage').text(response.message);
+                                successToast.show();
+
+                                // Close modal
+                                cancelModal.hide();
+
+                                // Refresh the page after a short delay
+                                setTimeout(() => {
+                                    location.reload();
+                                }, 1500);
+                            }
+                        },
+                        error: function(xhr) {
+                            const errorMessage = xhr.responseJSON?.message ||
+                                'Terjadi kesalahan server';
+                            $('#errorMessage').text(errorMessage);
+                            errorToast.show();
+                        },
+                        complete: function() {
+                            submitBtn.prop('disabled', false).html(
+                                '<i class="fas fa-times-circle me-1"></i> Batalkan Pesanan'
+                            );
+                            currentOrderId = null;
+                        }
+                    });
+                });
+
+
+                // Complete order flow
+                $('.complete-btn').click(function() {
+                    const orderId = $(this).data('id');
+
+                    Swal.fire({
+                        title: 'Tandai Selesai?',
+                        text: "Pesanan akan ditandai sebagai selesai",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#28a745',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Ya, Selesaikan',
+                        cancelButtonText: 'Batal'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            $.ajax({
+                                url: `/admin/orders/${orderId}/complete`,
+                                type: 'PUT',
+                                data: {
+                                    _token: "{{ csrf_token() }}"
+                                },
+                                success: function(response) {
+                                    if (response.success) {
+                                        const row = $('#order-row-' + orderId);
+
+                                        // Update status badge
+                                        row.find('.badge')
+                                            .removeClass('bg-info')
+                                            .addClass('bg-success')
+                                            .html(
+                                                '<i class="fas fa-check-circle me-1"></i> Selesai'
+                                            );
+
+                                        // Remove complete button from dropdown
+                                        row.find('.complete-btn').closest('li').remove();
+
+                                        // Show success message
+                                        $('#successMessage').text(
+                                            'Pesanan berhasil diselesaikan!');
+                                        successToast.show();
+
+                                        // Refresh the page after a short delay
+                                        setTimeout(() => {
+                                            location.reload();
+                                        }, 1500);
+                                    }
+                                },
+                                error: function(xhr) {
+                                    const errorMessage = xhr.responseJSON?.message ||
+                                        'Terjadi kesalahan server';
+                                    $('#errorMessage').text(errorMessage);
+                                    errorToast.show();
+                                }
+                            });
+                        }
+                    });
+                });
             });
         </script>
     @endsection

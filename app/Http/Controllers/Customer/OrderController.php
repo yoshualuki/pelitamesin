@@ -5,13 +5,13 @@ namespace App\Http\Controllers\Customer;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Illuminate\Http\Request;
-use App\Models\OrderDetail;
+use App\Models\Product;
 
 class OrderController extends Controller
 {
     public function index()
     {
-        if(!session()->get('user')) {
+        if (!session()->get('user')) {
             return redirect()->route('login');
         }
 
@@ -34,12 +34,12 @@ class OrderController extends Controller
 
     public function show($order_id)
     {
-        if(!session()->get('user')) {
+        if (!session()->get('user')) {
             return redirect()->route('login');
         }
         $order = Order::with(['items.product', 'user'])
-                    ->where('order_id', $order_id)
-                    ->firstOrFail();
+            ->where('order_id', $order_id)
+            ->firstOrFail();
 
         $statuses = [
             'waiting_payment' => 'Menunggu Pembayaran',
@@ -50,7 +50,7 @@ class OrderController extends Controller
             'cancelled' => 'Dibatalkan',
             'refunded' => 'Refunded'
         ];
-            
+
 
         return view('customer.orderShow', compact('order', 'statuses'));
     }
@@ -75,20 +75,19 @@ class OrderController extends Controller
     public function cancel(Request $request, $order_id)
     {
         $order = Order::where('order_id', $order_id)->firstOrFail();
-    
+
         // Validasi status order
         if (!in_array($order->status, ['waiting_payment', 'processing'])) {
             return back()->with('error', 'Tidak dapat membatalkan pesanan dengan status ini');
         }
-        
+
         // Update status order
         $order->update([
             'status' => 'cancelled',
             'cancellation_reason' => $request->reason,
-            'cancellation_notes' => $request->notes,
             'cancelled_at' => now()
         ]);
-        
+
         // Kembalikan stok produk jika perlu
         foreach ($order->items as $item) {
             $product = Product::find($item->product_id);
@@ -97,9 +96,7 @@ class OrderController extends Controller
 
             $product->save();
         }
-        
-        
-        
+
         return redirect()->route('orders.show', $order_id)
             ->with('success', 'Pesanan telah dibatalkan');
     }
@@ -107,22 +104,22 @@ class OrderController extends Controller
     public function confirmDelivery($order_id, Request $request)
     {
         $order = Order::where('order_id', $order_id)->firstOrFail();
-        
+
         // Validasi status order
         if ($order->status !== 'shipped') {
             return back()->with('error', 'Tidak dapat mengkonfirmasi pesanan yang belum dikirim');
         }
-        
+
         // Update status order
         $order->update([
             'status' => 'completed',
             'completed_at' => now(),
             'delivery_notes' => $request->notes
         ]);
-        
+
         // Kirim notifikasi ke admin
         // ...
-        
+
         return redirect()->route('orders.show', $order_id)
             ->with('success', 'Pesanan telah dikonfirmasi sebagai diterima');
     }

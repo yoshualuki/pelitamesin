@@ -121,20 +121,33 @@ class OrderAdminController extends Controller implements HasMiddleware
     /**
      * Menyelesaikan pesanan
      */
-    public function completeOrder($id)
+    public function completeOrder(Request $request, $id)
     {
-        $order = Order::findOrFail($id);
+        try {
+            $order = Order::findOrFail($id);
 
-        if ($order->status != 'shipped') {
-            return redirect()->back()->with('error', 'Pesanan tidak dapat diselesaikan karena belum dikirim.');
+            if ($order->status !== 'shipped') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pesanan tidak dapat diselesaikan karena belum dikirim.'
+                ], 400);
+            }
+
+            $order->update([
+                'status' => 'completed',
+                'completed_at' => now()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pesanan berhasil diselesaikan.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyelesaikan pesanan: ' . $e->getMessage()
+            ], 500);
         }
-
-        $order->update([
-            'status' => 'completed',
-            'completed_at' => now()
-        ]);
-
-        return redirect()->route('admin.orders')->with('success', 'Pesanan berhasil diselesaikan.');
     }
     /**
      * Get shipping information for an order
@@ -147,5 +160,37 @@ class OrderAdminController extends Controller implements HasMiddleware
             'courier' => $order->courier,
             'service' => $order->service
         ]);
+    }
+
+    /**
+     * Cancel an order
+     */
+    public function cancel(Request $request, $id)
+    {
+        try {
+            $order = Order::findOrFail($id);
+
+            if (!in_array($order->status, ['waiting_payment', 'waiting_confirmation', 'processing'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pesanan tidak dapat dibatalkan karena status tidak sesuai.'
+                ], 400);
+            }
+
+            $order->update([
+                'status' => 'cancelled',
+                'cancel_reason' => $request->cancel_reason
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pesanan berhasil dibatalkan.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal membatalkan pesanan: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
