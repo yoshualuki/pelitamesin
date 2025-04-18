@@ -244,14 +244,15 @@
 
                     </a>
                 </li>
-
-                <li>
-                    <a href="{{ route('admin.inventory') }}"
-                        class="sidebar-link @if (session()->get('menu') == 'inventory') active @endif">
-                        <i class="sidebar-icon fas fa-warehouse"></i>
-                        <span class="sidebar-text">Inventory</span>
-                    </a>
-                </li>
+                @if (session()->get('user')->role == 'owner')
+                    <li>
+                        <a href="{{ route('admin.inventory') }}"
+                            class="sidebar-link @if (session()->get('menu') == 'inventory') active @endif">
+                            <i class="sidebar-icon fas fa-warehouse"></i>
+                            <span class="sidebar-text">Inventory</span>
+                        </a>
+                    </li>
+                @endif
 
                 @if (session()->get('user')->role == 'owner')
                     <li class="sidebar-header">Reports</li>

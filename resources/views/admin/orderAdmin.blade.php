@@ -196,7 +196,7 @@
                                                         </li>
                                                         <li>
                                                             <a class="dropdown-item"
-                                                                href="{{ route('admin.orders', $order->order_id) }}"
+                                                                href="{{ route('admin.orders.invoice', $order->order_id) }}"
                                                                 target="_blank">
                                                                 <i class="fas fa-file-invoice me-2"></i> Invoice
                                                             </a>
@@ -425,9 +425,10 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                        <button type="button" class="btn btn-primary" id="printOrderBtn">
+                        <a href="{{ route('admin.orders.invoice', $order->order_id) }}" type="button" target="_blank"
+                            class="btn btn-primary">
                             <i class="fas fa-print me-1"></i> Cetak Invoice
-                        </button>
+                        </a>
                     </div>
                 </div>
             </div>

@@ -25,22 +25,22 @@ class CartController extends Controller
         Config::$isProduction = config('midtrans.is_production');
         Config::$isSanitized = true;
         Config::$is3ds = true;
-        
+
         // Initialize RajaOngkir
         $this->rajaOngkirService = new RajaOngkirService(config('rajaongkir.api_key'));
     }
 
     public function index()
     {
-        if(!session()->get('user')) {
+        if (!session()->get('user')) {
             return redirect()->route('login');
         }
-        
+
         $cart = session()->get('cart', []);
         $products = [];
         $total = 0;
         $totalWeight = 0;
-        
+
         foreach ($cart as $id => $details) {
             $product = Product::find($id);
             if ($product) {
@@ -64,7 +64,7 @@ class CartController extends Controller
     public function destroy($id)
     {
         $cart = session()->get('cart', []);
-        if(isset($cart[$id])) {
+        if (isset($cart[$id])) {
             unset($cart[$id]);
             session()->put('cart', $cart);
             return redirect()->route('cart')->with('success', 'Produk berhasil dihapus dari keranjang');
@@ -81,16 +81,16 @@ class CartController extends Controller
         $cart = session()->get('cart', []);
         if (isset($cart[$id])) {
             $product = Product::find($id);
-            
-            if($request->quantity > $product->stock) {
+
+            if ($request->quantity > $product->stock) {
                 return back()->with('error', 'Jumlah melebihi stok yang tersedia');
             }
-            
+
             $cart[$id]['quantity'] = $request->quantity;
             session()->put('cart', $cart);
             return redirect()->route('cart')->with('success', 'Jumlah produk berhasil diperbarui');
         }
-        
+
         return redirect()->route('cart')->with('error', 'Produk tidak ditemukan di keranjang');
     }
 
@@ -98,7 +98,7 @@ class CartController extends Controller
     {
         if (!session()->has('user')) {
             return response()->json([
-                'status' => 'error', 
+                'status' => 'error',
                 'message' => 'Anda harus login terlebih dahulu'
             ], 401);
         }
@@ -109,7 +109,7 @@ class CartController extends Controller
         ]);
 
         $product = Product::findOrFail($request->product_id);
-        
+
         if ($product->stock <= 0) {
             return response()->json([
                 'status' => 'error',
@@ -125,10 +125,10 @@ class CartController extends Controller
         }
 
         $cart = session()->get('cart', []);
-        
+
         if (isset($cart[$product->id])) {
             $newQuantity = $cart[$product->id]['quantity'] + $request->quantity;
-            if($newQuantity > $product->stock) {
+            if ($newQuantity > $product->stock) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Total jumlah melebihi stok yang tersedia'
@@ -146,7 +146,7 @@ class CartController extends Controller
         }
 
         session()->put('cart', $cart);
-        
+
         return response()->json([
             'status' => 'success',
             'message' => 'Produk berhasil ditambahkan ke keranjang',
@@ -158,7 +158,7 @@ class CartController extends Controller
     {
         $cart = session()->get('cart', []);
         $user = session()->get('user');
-        
+
         if (empty($cart)) {
             return redirect()->route('cart')->with('error', 'Keranjang belanja Anda kosong');
         }
@@ -175,7 +175,7 @@ class CartController extends Controller
         $products = [];
         $subtotal = 0;
         $totalWeight = 0;
-        
+
         foreach ($cart as $id => $details) {
             $product = Product::find($id);
             if ($product) {
@@ -215,27 +215,6 @@ class CartController extends Controller
         }
     }
 
-    public function getDistricts(Request $request)
-    {
-        $request->validate([
-            'city_id' => 'required|numeric'
-        ]);
-
-        try {
-            $response = $this->rajaOngkirService->getDistricts($request->city_id);
-            return response()->json([
-                'success' => true,
-                'data' => $response['rajaongkir']['results'] ?? []
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Error fetching districts: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal mengambil data kecamatan'
-            ], 500);
-        }
-    }
-
     public function getShippingCost(Request $request)
     {
         $request->validate([
@@ -251,11 +230,11 @@ class CartController extends Controller
                 30000,
                 $request->courier
             );
-            
+
             if (!isset($response['rajaongkir']['results'][0]['costs'])) {
                 throw new \Exception('Invalid shipping cost response');
             }
-            
+
             return response()->json([
                 'success' => true,
                 'courier' => $response['rajaongkir']['results'][0]['code'],

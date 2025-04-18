@@ -10,6 +10,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "barryvdh/laravel-dompdf": "^3.1",
         "illuminate/support": "*",
         "laravel/framework": "12.*",
         "laravel/tinker": "^2.0",

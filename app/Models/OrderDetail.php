@@ -23,12 +23,12 @@ class OrderDetail extends Model
 
     public function order()
     {
-        return $this->belongsTo(Order::class);
+        return $this->belongsTo(Order::class, 'order_id', 'order_id');
     }
 
     public function products()
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class, 'product_id', 'product_id');
     }
 
     public function refunds()
@@ -46,5 +46,4 @@ class OrderDetail extends Model
         $refunded = $this->refunds()->where('status', '!=', 'rejected')->sum('quantity');
         return $this->quantity - $refunded;
     }
-    
-} 
+}

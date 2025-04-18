@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Midtrans\Config;    
+use Midtrans\Config;
 use Midtrans\Snap;
 use Illuminate\Support\Facades\Http;
 use App\Models\Order;
@@ -47,7 +47,7 @@ class PaymentController extends Controller
         $user = session()->get('user');
         $totalWeight = 0;
         $subtotal = 0;
-        
+
         foreach ($cart as $id => $details) {
             $product = Product::find($id);
             $subtotal += $product->price * $details['quantity'];
@@ -82,8 +82,17 @@ class PaymentController extends Controller
 
             // 2. Buat order details (TANPA mengurangi stok)
             foreach ($cart as $id => $details) {
+                // 2a. Kurangi stock product
                 $product = Product::find($id);
-                
+                $product->stock -= $details['quantity'];
+                $product->save();
+
+                // 2b. Kurangi stock product di inventory dengan metode FIFO
+                $inventory = $product->inventories()->orderBy('created_at', 'asc')->first();
+                if ($inventory) {
+                    $inventory->quantity -= $details['quantity'];
+                    $inventory->save();
+                }
                 OrderDetail::create([
                     'order_id' => $order->order_id,
                     'product_id' => $product->id,
@@ -91,7 +100,8 @@ class PaymentController extends Controller
                     'product_image' => $product->image,
                     'quantity' => $details['quantity'],
                     'price' => $product->price,
-                    'weight' => $product->weight
+                    'weight' => $product->weight,
+                    'buy_price' => $inventory->unit_cost // hitung dengan stock di inventory FIFO 
                 ]);
             }
 
@@ -106,7 +116,7 @@ class PaymentController extends Controller
                     'name' => $product->name
                 ];
             }
-            
+
             // Tambahkan ongkir sebagai item
             $itemDetails[] = [
                 'id' => 'SHIPPING',
@@ -145,7 +155,7 @@ class PaymentController extends Controller
 
             // 4. Dapatkan Snap Token
             $snapToken = Snap::getSnapToken($params);
-            
+
             DB::commit();
 
             session()->remove('cart');
@@ -153,48 +163,48 @@ class PaymentController extends Controller
                 'snapToken' => $snapToken,
                 'orderId' => $orderId
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Payment processing error: ' . $e->getMessage());
             return response()->json(['error' => 'Proses pembayaran gagal'], 500);
         }
     }
-    
+
 
     public function handleWebhook(Request $request)
     {
         app('debugbar')->info('Webhook received', $request->all());
-        
+
         $serverKey = config('midtrans.server_key');
         $data = $request->all();
-    
+
         // Verifikasi signature key
-        $signatureKey = hash("sha512",
+        $signatureKey = hash(
+            "sha512",
             $data['order_id'] .
-            $data['status_code'] .
-            $data['gross_amount'] .
-            $serverKey
+                $data['status_code'] .
+                $data['gross_amount'] .
+                $serverKey
         );
-    
+
         if ($signatureKey !== $data['signature_key']) {
             app('debugbar')->error('Invalid signature key');
             return response()->json(['message' => 'Invalid signature key'], 403);
         }
-    
+
         // Cari transaksi berdasarkan order_id
         $transaction = Order::where('order_id', $data['order_id'])->first();
-    
+
         // Ambil nomor VA
         $vaNumber = null;
         $bank = null;
-        
+
 
         if (!$transaction) {
             app('debugbar')->error('Transaction not found: ' . $data['order_id']);
             return response()->json(['message' => 'Transaction not found'], 404);
         }
-    
+
         // handle payment type
         if (isset($data['va_numbers'])) {
             // Format untuk BCA, BNI, BRI, dll
@@ -207,12 +217,12 @@ class PaymentController extends Controller
             $vaNumber = $data['permata_va_number'];
             $bank = 'permata';
             $transaction->payment_code = $vaNumber;
-            $transaction->payment_method='Virtual Akun ' . $bank;
-        } elseif(isset($data['credit_card'])) {
+            $transaction->payment_method = 'Virtual Akun ' . $bank;
+        } elseif (isset($data['credit_card'])) {
             $bank = $data['credit_card']['bank'];
-            $transaction->payment_method = $data['payment_type'] . ' '. $bank;
+            $transaction->payment_method = $data['payment_type'] . ' ' . $bank;
         }
-        $transaction->payment_date= now();
+        $transaction->payment_date = now();
         // Update status berdasarkan transaction_status
         switch ($data['transaction_status']) {
             case 'capture':
@@ -235,12 +245,12 @@ class PaymentController extends Controller
                 $transaction->status = $data['transaction_status'];
                 break;
         }
-    
+
         // Simpan data tambahan jika diperlukan
         // $transaction->payment_method = $data['payment_type'] ?? null;
         // $transaction->transaction_time = $data['transaction_time'] ?? null;
         $transaction->save();
-    
+
         app('debugbar')->info('Transaction updated', ['order_id' => $transaction->order_id, 'status' => $transaction->status]);
         return response()->json(['message' => 'Webhook processed successfully']);
     }

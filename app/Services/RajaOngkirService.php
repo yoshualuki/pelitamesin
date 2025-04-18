@@ -29,8 +29,7 @@ class RajaOngkirService
             $response = Http::withHeaders([
                 'key' => $this->apiKey,
             ])->$method($this->url . $endpoint, $params);
-            app('debugbar')->info($endpoint);
-            app('debugbar')->info($response['rajaongkir']);
+
             return $response->successful() ? $response->json() : [
                 'status' => 'error',
                 'message' => $response->json()['message'] ?? 'An error occurred',
@@ -53,7 +52,6 @@ class RajaOngkirService
     {
         $endpoint = $id ? "/province?id={$id}" : '/province';
         return $this->makeRequest('get', $endpoint);
-        
     }
 
     /**
@@ -66,11 +64,9 @@ class RajaOngkirService
     public function getCities($provinceId)
     {
         $endpoint = "/city";
-        return $this->makeRequest('get', $endpoint,[
+        return $this->makeRequest('get', $endpoint, [
             'province' => $provinceId
         ]);
-
-        
     }
 
     /**
@@ -104,7 +100,7 @@ class RajaOngkirService
             'weight' => $weight,
             'courier' => $courier,
         ];
-        
+
         $endpoint = '/cost';
         return $this->makeRequest('post', $endpoint, $params);
     }

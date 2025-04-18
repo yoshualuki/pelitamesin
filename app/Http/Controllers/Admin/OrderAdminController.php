@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use PDF;
 use App\Http\Controllers\Controller;
 use App\Models\Retur;
 use App\Models\Order;
@@ -64,8 +65,31 @@ class OrderAdminController extends Controller implements HasMiddleware
      */
     public function showOrder($id)
     {
-        $order = Order::with(['customer', 'items.product'])->findOrFail($id);
-        return view('admin.orderDetail', compact('order'));
+        $order = Order::with([
+            'customer',
+            'items',  // Changed from items.products to just items
+        ])->findOrFail($id);
+
+        $lastStatus = [
+            'waiting_payment' => 'Menunggu Pembayaran',
+            'waiting_confirmation' => 'Menunggu Konfirmasi',
+            'processing' => 'Diproses',
+            'shipped' => 'Dikirim',
+            'completed' => 'Selesai',
+            'cancelled' => 'Dibatalkan'
+        ][$order->status] ?? $order->status;
+
+        $orderItems = $order->items;
+        return view('admin.order.detail', compact('order', 'orderItems', 'lastStatus'));
+    }
+
+    public function generateInvoice($id)
+    {
+        $order = Order::with(['items', 'customer'])->findOrFail($id);
+
+        $pdf = PDF::loadView('invoice', compact('order'));
+
+        return $pdf->stream('Invoice-' . $order->order_id . '.pdf');
     }
 
     /**

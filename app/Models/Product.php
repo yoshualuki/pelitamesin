@@ -13,7 +13,8 @@ class Product extends Model
         'description',
         'brand',
         'weight',
-        'image'
+        'image',
+        'stock'
     ];
 
     protected $primaryKey = 'id'; // Menetapkan id sebagai primary key
@@ -32,7 +33,7 @@ class Product extends Model
 
     public function orderItems()
     {
-        return $this->hasMany(OrderDetail::class, 'product_id');
+        return $this->hasMany(OrderDetail::class, 'product_id', 'id');
     }
 
     public function inventories()

@@ -49,7 +49,7 @@ Route::prefix('cart')->group(function () {
 
     // AJAX routes for shipping calculation
     Route::get('/cities', [CartController::class, 'getCities'])->name('cart.cities');
-    Route::get('/districts', [CartController::class, 'getDistricts'])->name('cart.districts');
+
     Route::get('/shipping-cost', [CartController::class, 'getShippingCost'])->name('cart.shipping-cost');
 });
 Route::post('/checkout/process-payment', [PaymentController::class, 'processPayment'])->name('checkout.process-payment');
@@ -132,6 +132,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/orders/{id}/shipping-info', [OrderAdminController::class, 'getShippingInfo'])
         ->name('admin.orders.shipping-info');
     Route::put('/orders/{id}/complete', [OrderAdminController::class, 'completeOrder'])->name('orders.complete');
+    Route::get('/orders/{id}/invoice', [OrderAdminController::class, 'generateInvoice'])->name('orders.invoice');
 
     Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
     // inventory

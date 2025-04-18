@@ -69,7 +69,7 @@ class Order extends Model
 
     public function items()
     {
-        return $this->hasMany(OrderDetail::class, 'id', 'id');
+        return $this->hasMany(OrderDetail::class, 'order_id', 'order_id');
     }
 
     public function customer()
@@ -80,7 +80,7 @@ class Order extends Model
     // Define relationship with products through order items
     public function products()
     {
-        return $this->belongsToMany(Product::class, 'order_details')
+        return $this->belongsToMany(Product::class, 'order_details', 'product_id', 'product_id')
             ->withPivot('quantity', 'price')
             ->withTimestamps();
     }
