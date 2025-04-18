@@ -85,9 +85,9 @@
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center">
-                                    <img src="{{ asset('storage/' . $item->product_image) }}"
-                                        alt="{{ $item->product_name }}" class="rounded me-2" width="40"
-                                        height="40" onerror="this.src='{{ asset('images/default-product.png') }}'">
+                                    <img src="{{ asset($item->product_image) }}" alt="{{ $item->product_name }}"
+                                        class="rounded me-2" width="40" height="40"
+                                        onerror="this.src='{{ asset('images/default-product.png') }}'">
                                     <div>
                                         <h6 class="mb-0">{{ $item->product_name }}</h6>
                                     </div>

@@ -147,7 +147,7 @@ class AdminController extends Controller implements HasMiddleware
             'orderChartData' => $this->getOrderChartData($range === 'today' ? 1 : ($range === 'week' ? 7 : ($range === 'year' ? 365 : 30))),
 
             // Recent transactions
-            'recentTransactions' => Order::with(['items.product'])
+            'recentTransactions' => Order::with(['items.products'])
                 ->latest()
                 ->take(8)
                 ->get(),

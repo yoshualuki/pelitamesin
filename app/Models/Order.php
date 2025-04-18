@@ -74,7 +74,7 @@ class Order extends Model
 
     public function customer()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id', 'id');
     }
 
     // Define relationship with products through order items
@@ -98,6 +98,15 @@ class Order extends Model
     public function payment()
     {
         return $this->hasOne(Payment::class, 'order_id', 'order_id');
+    }
+
+    public function cogs()
+    {
+        $cogs = 0;
+        foreach ($this->items as $item) {
+            $cogs += $item->price * $item->quantity;
+        }
+        return $cogs;
     }
 
     // Helper methods

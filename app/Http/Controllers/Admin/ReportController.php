@@ -1,16 +1,16 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
 use App\Models\Order;
 use App\Models\Product;
-use App\Models\Inventory;
+
 use App\Models\OrderDetail;
 use App\Models\OrderRefund;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Session;
+use App\Http\Controllers\Controller;
 
 class ReportController extends Controller
 {
@@ -19,7 +19,7 @@ class ReportController extends Controller
     {
         $date = $request->input('date', now()->format('Y-m-d'));
 
-        $transactions = Order::with(['items.product'])
+        $transactions = Order::with(['items.products'])
             ->whereDate('created_at', $date)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -43,11 +43,11 @@ class ReportController extends Controller
         // Threshold for low stock (adjust as needed)
         $threshold = 10;
 
-        $lowStockItems = Product::with(['inventory'])
-            ->whereHas('inventory', function ($query) use ($threshold) {
+        $lowStockItems = Product::with(['inventories'])
+            ->whereHas('inventories', function ($query) use ($threshold) {
                 $query->where('quantity', '<=', $threshold);
             })
-            ->orWhereDoesntHave('inventory')
+            ->orWhereDoesntHave('inventories')
             ->orderBy('name')
             ->get();
 
@@ -66,32 +66,33 @@ class ReportController extends Controller
         $startDate = Carbon::create($year, $month, 1)->startOfMonth();
         $endDate = Carbon::create($year, $month, 1)->endOfMonth();
 
-        // Calculate revenue from completed orders
-        $revenue = Order::where('status', Order::STATUS_COMPLETED)
+        // Get all completed orders for the month with their details
+        $transactions = Order::with(['items.products'])
+            ->where('status', Order::STATUS_COMPLETED)
             ->whereBetween('completed_at', [$startDate, $endDate])
-            ->sum('final_amount');
+            ->orderBy('completed_at', 'desc')
+            ->get();
 
-        // Calculate cost of goods sold from order details
-        $cogs = OrderDetail::whereHas('order', function ($query) use ($startDate, $endDate) {
-            $query->where('status', Order::STATUS_COMPLETED)
-                ->whereBetween('completed_at', [$startDate, $endDate]);
-        })
-            ->sum(DB::raw('buy_price * quantity'));
+        // Calculate revenue
+        $revenue = $transactions->sum('final_amount');
 
-        // Calculate expenses (you'll need to implement this based on your expense tracking)
-        $expenses = 0; // Placeholder - implement based on your expense model
+        // Calculate COGS
+        $cogs = $transactions->reduce(function ($carry, $order) {
+            return $carry + $order->items->sum(function ($item) {
+                return $item->buy_price * $item->quantity;
+            });
+        }, 0);
 
-        $grossProfit = $revenue - $cogs;
-        $netProfit = $grossProfit - $expenses;
+        // Calculate profit
+        $profit = $revenue - $cogs;
 
         return view('admin.reports.monthly-profit', [
             'year' => $year,
             'month' => $month,
             'revenue' => $revenue,
             'cogs' => $cogs,
-            'grossProfit' => $grossProfit,
-            'expenses' => $expenses,
-            'netProfit' => $netProfit,
+            'profit' => $profit,
+            'transactions' => $transactions,
             'startDate' => $startDate,
             'endDate' => $endDate
         ]);
@@ -132,6 +133,7 @@ class ReportController extends Controller
         $topProducts = Product::select([
             'products.id',
             'products.name',
+            'products.image',
             'products.price',
             DB::raw('SUM(order_details.quantity) as total_quantity'),
             DB::raw('SUM(order_details.price * order_details.quantity) as total_revenue')

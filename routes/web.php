@@ -15,7 +15,7 @@ use App\Http\Controllers\Customer\OrderController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Customer\ReturCustController;
-use App\Http\Controllers\Admin\ReturAdminController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\OrderAdminController;
 use App\Http\Controllers\Admin\InventoryController;
@@ -146,18 +146,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
 
     // Reports (Owner Only)
-    Route::middleware(['role:owner'])->group(function () {
-        Route::prefix('reports')->name('reports.')->group(function () {
-            Route::get('daily-transactions', [ReportController::class, 'dailyTransactions'])->name('daily-transactions');
-            Route::get('low-stock', [ReportController::class, 'lowStock'])->name('low-stock');
-            Route::get('monthly-profit', [ReportController::class, 'monthlyProfit'])->name('monthly-profit');
-            Route::get('product-returns', [ReportController::class, 'productReturns'])->name('product-returns');
-            Route::get('top-products', [ReportController::class, 'topProducts'])->name('top-products');
-            Route::get('cancelled-orders', [ReportController::class, 'cancelledOrders'])->name('cancelled-orders');
-            Route::get('top-rated', [ReportController::class, 'topRated'])->name('top-rated');
-            Route::get('unsold-products', [ReportController::class, 'unsoldProducts'])->name('unsold-products');
-            Route::get('payment-methods', [ReportController::class, 'paymentMethods'])->name('payment-methods');
-            Route::get('low-rated', [ReportController::class, 'lowRated'])->name('low-rated');
-        });
+
+    Route::prefix('reports')->name('reports.')->group(function () {
+        Route::get('daily-transactions', [ReportController::class, 'dailyTransactions'])->name('daily-transactions');
+        Route::get('low-stock', [ReportController::class, 'lowStock'])->name('low-stock');
+        Route::get('monthly-profit', [ReportController::class, 'monthlyProfit'])->name('monthly-profit');
+        Route::get('product-returns', [ReportController::class, 'productReturns'])->name('product-returns');
+        Route::get('top-products', [ReportController::class, 'topProducts'])->name('top-products');
+        Route::get('cancelled-orders', [ReportController::class, 'cancelledOrders'])->name('cancelled-orders');
+        Route::get('top-rated', [ReportController::class, 'topRated'])->name('top-rated');
+        Route::get('unsold-products', [ReportController::class, 'unsoldProducts'])->name('unsold-products');
+        Route::get('payment-methods', [ReportController::class, 'paymentMethods'])->name('payment-methods');
+        Route::get('low-rated', [ReportController::class, 'lowRated'])->name('low-rated');
     });
 });
