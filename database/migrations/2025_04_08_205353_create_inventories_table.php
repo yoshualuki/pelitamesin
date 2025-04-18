@@ -15,9 +15,9 @@ return new class extends Migration
             $table->id();
             $table->string('product_id')->nullable();
             $table->integer('quantity')->default(0);
-            $table->decimal('unit_cost', 10, 2)->default(0);
-            $table->decimal('total_cost', 10, 2)->default(0);
-            $table->date('last_restocked_at')->nullable();
+            $table->decimal('unit_cost', 25, 2)->default(0);
+            $table->decimal('total_cost', 25, 2)->default(0);
+            $table->dateTime('last_restocked_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
             $table->foreign('product_id')

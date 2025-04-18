@@ -21,9 +21,7 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {   
-        // Validate the incoming request data
         $this->validateLogin($request);
-        
         try {
             $user = User::where('email', $request->email)->first();
             if (!$user) {
@@ -38,10 +36,15 @@ class AuthController extends Controller
                         'success' => "Login as $user->name Berhasil", 
                         'route' => route('home') // Assuming this route exists for users
                     ], 200);
-                } else {    
+                } else if($user-> role =='admin'){    
                     return response()->json([
                         'success' => "Login as Admin Berhasil", 
-                        'route' => route('admin.dashboard') // Assuming this route exists for admins
+                        'route' => route('admin.dashboard') 
+                    ], 200);
+                } else {
+                    return response()->json([
+                        'success' => "Login as Owner Berhasil", 
+                        'route' => route('admin.dashboard') 
                     ], 200);
                 }
 
@@ -75,6 +78,7 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         try{
+
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users',
@@ -82,6 +86,13 @@ class AuthController extends Controller
                 'password_confirmation' => 'required|min:6'
             ]);
     
+            // Pengecekan manual email sudah terdaftar sebelum validasi
+            if (User::where('email', strtolower(trim($request->email)))->exists()) {
+                return response()->json([
+                    'error' => 'Email ini sudah terdaftar. Gunakan email lain atau lupa password?'
+                ], 409); // 409 Conflict status code
+            }
+
             $user = User::create([
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
@@ -95,7 +106,8 @@ class AuthController extends Controller
                 'remember_token' => Str::random(10),
 
             ]);
-    
+            $user = User::where('email', $request->email)->first();
+            Session::put('user', $user);
             return response()->json(['success' => 'Berhasil membuat akun'], 200);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 400);

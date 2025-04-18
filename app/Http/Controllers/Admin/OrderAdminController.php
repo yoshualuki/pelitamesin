@@ -10,12 +10,31 @@ use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Support\Facades\Session;
 
 
-
-class OrderAdminController extends Controller
+class OrderAdminController extends Controller implements HasMiddleware
 {
-   /**
+    /**
+     * Get the middleware that should be assigned to the controller.
+     */
+    public static function middleware(): array
+    {
+        return [
+            new Middleware(function ($request, $next) {
+                $user = Session::get('user');
+                if ($user == null || ($user->role != 'admin' && $user->role != 'owner')) {
+                    return redirect()->route('login');
+                }
+                return $next($request);
+            }),
+        ];
+    }
+
+
+    /**
      * Menampilkan daftar pesanan
      */
     public function orders(Request $request)
@@ -23,15 +42,15 @@ class OrderAdminController extends Controller
         session()->put('menu', 'orders');
 
         $orders = Order::with('customer')
-            ->when($request->search, function($query) use ($request) {
-                $query->where(function($q) use ($request) {
-                    $q->where('order_code', 'like', '%'.$request->search.'%')
-                      ->orWhereHas('customer', function($q) use ($request) {
-                          $q->where('name', 'like', '%'.$request->search.'%');
-                      });
+            ->when($request->search, function ($query) use ($request) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('order_code', 'like', '%' . $request->search . '%')
+                        ->orWhereHas('customer', function ($q) use ($request) {
+                            $q->where('name', 'like', '%' . $request->search . '%');
+                        });
                 });
             })
-            ->when($request->status && $request->status != 'all', function($query) use ($request) {
+            ->when($request->status && $request->status != 'all', function ($query) use ($request) {
                 $query->where('status', $request->status);
             })
             ->orderBy('created_at', 'desc')
@@ -55,7 +74,7 @@ class OrderAdminController extends Controller
     public function confirmOrder(Request $request, $id)
     {
         $order = Order::findOrFail($id);
-        
+
         if ($order->status != 'waiting_confirmation') {
             return response()->json([
                 'success' => false,
@@ -85,7 +104,7 @@ class OrderAdminController extends Controller
         ]);
 
         $order = Order::findOrFail($id);
-        
+
         if ($order->status != 'confirmed') {
             return redirect()->back()->with('error', 'Pesanan tidak dapat dikirim karena belum dikonfirmasi.');
         }
@@ -109,7 +128,7 @@ class OrderAdminController extends Controller
     public function completeOrder($id)
     {
         $order = Order::findOrFail($id);
-        
+
         if ($order->status != 'shipped') {
             return redirect()->back()->with('error', 'Pesanan tidak dapat diselesaikan karena belum dikirim.');
         }
@@ -122,5 +141,3 @@ class OrderAdminController extends Controller
         return redirect()->route('admin.orders')->with('success', 'Pesanan berhasil diselesaikan.');
     }
 }
-
-

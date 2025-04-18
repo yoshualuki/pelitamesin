@@ -6,65 +6,61 @@
         <div class="col-md-8 col-lg-6">
             <div class="card shadow-sm">
                 <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0">Masuk ke Akun Anda</h3>
+                    <h3 class="mb-0">Reset Password</h3>
                 </div>
                 <div class="card-body">
-                    @if(session('status'))
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        {{ session('status') }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                    @endif
-
-                    <form method="POST" id="loginForm" novalidate>
+                    <form method="POST" id="resetPasswordForm" novalidate>
                         @csrf
+                        <input type="hidden" name="token" value="{{ $token }}">
 
                         <div class="mb-3">
                             <label for="email" class="form-label">Alamat Email</label>
                             <input type="email" name="email" id="email" 
                                    class="form-control @error('email') is-invalid @enderror" 
-                                   value="{{ old('email') }}" 
+                                   value="{{ $email ?? old('email') }}" 
                                    required 
                                    autocomplete="email" 
-                                   autofocus>
+                                   readonly>
                             @error('email')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
 
                         <div class="mb-3">
-                            <label for="password" class="form-label">Password</label>
+                            <label for="password" class="form-label">Password Baru</label>
                             <div class="input-group">
                                 <input type="password" name="password" id="password" 
                                        class="form-control @error('password') is-invalid @enderror" 
                                        required 
-                                       autocomplete="current-password">
+                                       autocomplete="new-password">
                                 <button class="btn btn-outline-secondary toggle-password" type="button">
                                     <i class="bi bi-eye"></i>
                                 </button>
                             </div>
+                            <div class="form-text">Minimal 8 karakter dengan kombinasi huruf dan angka</div>
                             @error('password')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
 
-                        <div class="mb-3 form-check">
-                            <input type="checkbox" name="remember" id="remember" 
-                                   class="form-check-input" {{ old('remember') ? 'checked' : '' }}>
-                            <label class="form-check-label" for="remember">Ingat Saya</label>
+                        <div class="mb-3">
+                            <label for="password-confirm" class="form-label">Konfirmasi Password Baru</label>
+                            <div class="input-group">
+                                <input type="password" name="password_confirmation" id="password-confirm" 
+                                       class="form-control" 
+                                       required 
+                                       autocomplete="new-password">
+                                <button class="btn btn-outline-secondary toggle-password" type="button">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="d-grid gap-2 mb-3">
                             <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
                                 <span class="spinner-border spinner-border-sm d-none" role="status"></span>
-                                Masuk
+                                Reset Password
                             </button>
-                        </div>
-
-                        <div class="text-center">
-                            <a href="{{ route('password.request') }}" class="text-decoration-none">Lupa Password?</a>
-                            <span class="mx-2">•</span>
-                            <a href="{{ route('register') }}" class="text-decoration-none">Belum punya akun?</a>
                         </div>
                     </form>
                 </div>
@@ -72,25 +68,6 @@
         </div>
     </div>
 </div>
-@endsection
-
-@section('styles')
-<style>
-    .toggle-password:hover {
-        cursor: pointer;
-        background-color: #f8f9fa;
-    }
-    .card {
-        border-radius: 10px;
-    }
-    .form-control:focus {
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-    }
-    .form-check-input:checked {
-        background-color: #0d6efd;
-        border-color: #0d6efd;
-    }
-</style>
 @endsection
 
 @section('scripts')
@@ -110,8 +87,7 @@
             }
         });
 
-        // Form submission with validation
-        $('#loginForm').on('submit', function(e) {
+        $('#resetPasswordForm').on('submit', function(e) {
             e.preventDefault();
             
             const form = $(this);
@@ -124,42 +100,39 @@
             
             $.ajax({
                 type: 'POST',
-                url: "{{ route('login.submit') }}",
+                url: "{{ route('password.update') }}",
                 data: form.serialize(),
                 dataType: 'json',
                 success: function(response) {
-                    if (response.two_factor) {
-                        // Handle 2FA case if implemented
-                        window.location.href = response.redirect;
-                    } else {
-                        showSwalSuccess(response.message || 'Login berhasil!');
-                        
-                        setTimeout(() => {
-                            window.location.href = response.route;
-                        }, 1500);
-                    }
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Password Berhasil Direset!',
+                        text: response.message || 'Password Anda telah berhasil diubah',
+                        showConfirmButton: false,
+                        timer: 3000
+                    }).then(() => {
+                        window.location.href = "{{ route('login') }}";
+                    });
                 },
                 error: function(xhr) {
-                    let errorMessage = 'Email atau password salah. Silakan coba lagi.';
+                    let errorMessage = 'Terjadi kesalahan. Silakan coba lagi.';
                     
                     if (xhr.status === 422) {
-                        // Laravel validation errors
                         const errors = xhr.responseJSON.errors;
                         errorMessage = Object.values(errors)[0][0];
                         
-                        // Highlight invalid fields
                         $.each(errors, function(key, value) {
                             const input = $(`[name="${key}"]`);
                             input.addClass('is-invalid');
                             input.next('.invalid-feedback').text(value[0]);
                         });
-                    } else if (xhr.responseJSON && xhr.responseJSON.error) {
-                        errorMessage = xhr.responseJSON.error;
+                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
                     }
                     
                     Swal.fire({
                         icon: 'error',
-                        title: 'Gagal Login',
+                        title: 'Gagal',
                         text: errorMessage,
                     });
                 },
@@ -174,25 +147,6 @@
         $('input').on('input', function() {
             $(this).removeClass('is-invalid');
         });
-
-        // Helper functions for Swal
-        function showSwalSuccess(message) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Sukses',
-                text: message,
-                showConfirmButton: false,
-                timer: 1500
-            });
-        }
-
-        function showSwalError(message) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: message,
-            });
-        }
     });
 </script>
 @endsection

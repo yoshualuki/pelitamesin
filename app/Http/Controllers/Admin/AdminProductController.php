@@ -11,10 +11,29 @@ use App\Models\Admin;
 use Illuminate\Support\Facades\DB;
 use App\Http\Middleware\AdminMiddleware;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Support\Facades\Session;
 
 
-class AdminProductController extends Controller
+class AdminProductController extends Controller implements HasMiddleware
 {
+    
+    /**
+     * Get the middleware that should be assigned to the controller.
+     */
+    public static function middleware(): array
+    {
+        return [
+            new Middleware(function ($request, $next) {
+                $user = Session::get('user');
+                if ($user == null || ($user->role != 'admin' && $user->role != 'owner')) {
+                    return redirect()->route('login');
+                }
+                return $next($request);
+            }),
+        ];
+    }
 
     public function index(Request $request)
     {
@@ -98,7 +117,6 @@ class AdminProductController extends Controller
     public function update(Request $request, Product $product)
     {
         try{
-            
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'price' => 'required|numeric|min:0',

@@ -29,10 +29,15 @@ class Product extends Model
             $product->id = (string) Str::uuid(); // Mengatur uuid dengan UUID
         });
     }
-    
+
     public function orderItems()
     {
         return $this->hasMany(OrderDetail::class, 'product_id');
+    }
+
+    public function inventories()
+    {
+        return $this->hasMany(Inventory::class, 'product_id');
     }
 
     // Metode untuk memeriksa ketersediaan stok
@@ -40,5 +45,4 @@ class Product extends Model
     {
         return $this->stock > 0;
     }
-    
-} 
+}

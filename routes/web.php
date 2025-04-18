@@ -19,6 +19,8 @@ use App\Http\Controllers\Admin\ReturAdminController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\OrderAdminController;
 use App\Http\Controllers\Admin\InventoryController;
+use App\Http\Controllers\Auth\PasswordResetController;
+
 
 // Public Routes
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -27,11 +29,11 @@ Route::get('/contact-us', [ContactController::class, 'index'])->name('contact-us
 
 // Products routes
 Route::prefix('products')->group(function () {
-    Route::get('/',[ProductController::class, 'index'] )->name('products');
+    Route::get('/', [ProductController::class, 'index'])->name('products');
     Route::post('/', [ProductController::class, 'store'])->name('products.submit');
-    Route::get('/search',[ProductController::class, 'search'] )->name('products.search');
+    Route::get('/search', [ProductController::class, 'search'])->name('products.search');
     Route::get('/{id}', [ProductController::class, 'show'])
-     ->name('product.show');
+        ->name('product.show');
 });
 
 // Cart routes
@@ -44,7 +46,7 @@ Route::prefix('cart')->group(function () {
 
     Route::get('/count', [CartController::class, 'count'])->name('cart.count');
     Route::post('/process', [PaymentController::class, 'process'])->name('cart.process');
-    
+
     // AJAX routes for shipping calculation
     Route::get('/cities', [CartController::class, 'getCities'])->name('cart.cities');
     Route::get('/districts', [CartController::class, 'getDistricts'])->name('cart.districts');
@@ -61,7 +63,7 @@ Route::prefix('orders')->group(function () {
     Route::post('/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.status.update');
     // routes/web.php
     Route::post('/{order_id}/confirm-delivery', [OrderController::class, 'confirmDelivery'])
-    ->name('orders.confirm-delivery');
+        ->name('orders.confirm-delivery');
 });
 
 Route::post('/midtrans/webhook', [PaymentController::class, 'handleWebhook']);
@@ -78,6 +80,23 @@ Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/register', [AuthController::class, 'showRegistrationForm'])->name('register');
 Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
 
+// Password reset routes
+Route::get('/forgot-password', [PasswordResetController::class, 'showLinkRequestForm'])
+    ->middleware('guest')
+    ->name('password.request');
+
+Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLinkEmail'])
+    ->middleware('guest')
+    ->name('password.email');
+
+Route::get('/reset-password/{token}', [PasswordResetController::class, 'showResetForm'])
+    ->middleware('guest')
+    ->name('password.reset');
+
+Route::post('/reset-password', [PasswordResetController::class, 'reset'])
+    ->middleware('guest')
+    ->name('password.update');
+
 // Customer Routes
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -88,14 +107,14 @@ Route::middleware('auth')->group(function () {
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/dashboard/chart-data', [AdminController::class, 'chartData'])
-         ->name('admin.dashboard.chart');
-        
+        ->name('admin.dashboard.chart');
+
     Route::get('/customer', [AdminUserController::class, 'index'])->name('customer');
     Route::get('/customer/edit', [AdminController::class, 'customer'])->name('customer.edit');
     Route::get('/customer/store', [AdminController::class, 'customer'])->name('customer.store');
     Route::get('/customer/destroy', [AdminController::class, 'customer'])->name('customer.destroy');
 
-     
+
     // Product Routes
     Route::get('/product', [AdminProductController::class, 'index'])->name('product');
     Route::post('/product', [AdminProductController::class, 'store'])->name('product.store');
@@ -105,12 +124,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::delete('/product/{product}', [AdminProductController::class, 'destroy'])->name('product.destroy');
 
     //Admin Order Routes
-    Route::get('/orders', [OrderAdminController::class, 'orders'])-> name('orders');
+    Route::get('/orders', [OrderAdminController::class, 'orders'])->name('orders');
     Route::get('/orders/{id}', [OrderAdminController::class, 'showOrder'])->name('orders.show');
     Route::put('/orders/{id}/confirm', [OrderAdminController::class, 'confirmOrder'])->name('orders.confirm');
     Route::put('/orders/{id}/ship', [OrderAdminController::class, 'shipOrder'])->name('orders.ship');
     Route::put('/orders/{id}/complete', [OrderAdminController::class, 'completeOrder'])->name('orders.complete');
-    
+
+    Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
     // inventory
     Route::resource('inventory', InventoryController::class)->names([
         'index' => 'inventory',
@@ -118,7 +138,22 @@ Route::prefix('admin')->name('admin.')->group(function () {
         'store' => 'inventory.store',
         'edit' => 'inventory.edit',
         'update' => 'inventory.update',
-        'destroy' => 'inventory.destroy'
     ]);
 
+
+    // Reports (Owner Only)
+    Route::middleware(['role:owner'])->group(function () {
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('daily-transactions', [ReportController::class, 'dailyTransactions'])->name('daily-transactions');
+            Route::get('low-stock', [ReportController::class, 'lowStock'])->name('low-stock');
+            Route::get('monthly-profit', [ReportController::class, 'monthlyProfit'])->name('monthly-profit');
+            Route::get('product-returns', [ReportController::class, 'productReturns'])->name('product-returns');
+            Route::get('top-products', [ReportController::class, 'topProducts'])->name('top-products');
+            Route::get('cancelled-orders', [ReportController::class, 'cancelledOrders'])->name('cancelled-orders');
+            Route::get('top-rated', [ReportController::class, 'topRated'])->name('top-rated');
+            Route::get('unsold-products', [ReportController::class, 'unsoldProducts'])->name('unsold-products');
+            Route::get('payment-methods', [ReportController::class, 'paymentMethods'])->name('payment-methods');
+            Route::get('low-rated', [ReportController::class, 'lowRated'])->name('low-rated');
+        });
+    });
 });

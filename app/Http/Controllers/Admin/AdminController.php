@@ -6,16 +6,15 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\User;
-use App\Models\Order;   
-use App\Models\Admin;
+use App\Models\Order;
 use Illuminate\Support\Facades\DB;
-use App\Http\Middleware\AdminMiddleware;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Carbon\Carbon;
+use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Routing\Controllers\HasMiddleware;
 
 
-class AdminController extends Controller
+class AdminController extends Controller implements HasMiddleware
 {
     const STATUS_WAITING_PAYMENT = 'waiting_payment';
     const STATUS_PROCESSING = 'processing';
@@ -35,16 +34,28 @@ class AdminController extends Controller
         'waiting_confirmation' => 'Menunggu Konfirmasi'
     ];
 
-    private function checkAdminAuth()
+    /**
+     * Get the middleware that should be assigned to the controller.
+     */
+    public static function middleware(): array
     {
-        $user = Session::get('user');
-        if ($user != null && $user->role == 'admin') {
-            return true;
-        }
-        return false;
+        return [
+            new Middleware(function ($request, $next) {
+                $user = Session::get('user');
+                if ($user == null || ($user->role != 'admin' && $user->role != 'owner')) {
+                    return redirect()->route('login');
+                }
+                return $next($request);
+            }),
+        ];
     }
+
     public function dashboard(Request $request)
     {
+        $user = Session::get('user');
+        if ($user == null || ($user->role != 'admin' && $user->role != 'owner')) {
+            return redirect()->route('login');
+        }
         session()->put('menu', 'dashboard');
         // Date ranges
         $today = Carbon::today();
@@ -52,55 +63,55 @@ class AdminController extends Controller
         $lastWeek = Carbon::today()->subDays(7);
         $lastMonth = Carbon::today()->subDays(30);
         $lastYear = Carbon::today()->subYear();
-    
+
         $range = $request->input('range', 'week');
-        
+
         // Order statistics
         $totalOrders = Order::where('status', '!=', self::STATUS_CANCELLED)->count();
         $monthlyOrders = Order::where('created_at', '>=', $lastMonth)->count();
         $weeklyOrders = Order::where('created_at', '>=', $lastWeek)->count();
         $dailyOrders = Order::whereDate('created_at', $today)->count();
-        
+
         // Revenue calculations
         $totalRevenue = Order::where('status', '!=', self::STATUS_CANCELLED)->sum('total_amount');
         $monthlyRevenue = Order::where('status', 'completed')
-                              ->where('created_at', '>=', $lastMonth)
-                              ->sum('total_amount');
-        
+            ->where('created_at', '>=', $lastMonth)
+            ->sum('total_amount');
+
         // Pending and failed orders
         $pendingOrders = Order::where('status', 'pending')->count();
         $failedOrders = Order::where('status', 'failed')->count();
-    
+
         // Calculate percentage changes
         $totalOrdersChange = $this->calculatePercentageChange(
             Order::where('created_at', '<', $lastMonth)->count(),
             $totalOrders
         );
-        
+
         $revenueChange = $this->calculatePercentageChange(
             Order::where('status', 'completed')
-                 ->whereBetween('created_at', [$lastYear, $lastMonth])
-                 ->sum('total_amount'),
+                ->whereBetween('created_at', [$lastYear, $lastMonth])
+                ->sum('total_amount'),
             $monthlyRevenue
         );
-        
+
         $pendingChange = $this->calculatePercentageChange(
             Order::where('status', 'pending')
-                 ->whereBetween('created_at', [$lastWeek->subDays(7), $lastWeek])
-                 ->count(),
+                ->whereBetween('created_at', [$lastWeek->subDays(7), $lastWeek])
+                ->count(),
             $pendingOrders
         );
-        
+
         $dailyChange = $this->calculatePercentageChange(
             Order::whereDate('created_at', $yesterday)->count(),
             $dailyOrders
         );
 
         $topProducts = Product::select([
-                'products.*',
-                DB::raw('COALESCE(SUM(order_details.quantity), 0) as sales_count'),
-                DB::raw('COALESCE(SUM(order_details.quantity * order_details.price), 0) as revenue')
-            ])
+            'products.*',
+            DB::raw('COALESCE(SUM(order_details.quantity), 0) as sales_count'),
+            DB::raw('COALESCE(SUM(order_details.quantity * order_details.price), 0) as revenue')
+        ])
             ->leftJoin('order_details', 'products.id', '=', 'order_details.product_id')
             ->leftJoin('orders', 'order_details.order_id', '=', 'orders.order_id')
             // ->where('orders.status', 'completed')
@@ -110,82 +121,82 @@ class AdminController extends Controller
             ->get();
 
         app('debugbar')->info($topProducts);
-    
+
         return view('admin.dashboard', [
             // Order statistics
             'totalOrders' => $totalOrders,
             'monthlyOrders' => $monthlyOrders,
             'weeklyOrders' => $weeklyOrders,
             'dailyOrders' => $dailyOrders,
-            
+
             // Revenue
             'totalRevenue' => $totalRevenue,
             'monthlyRevenue' => $monthlyRevenue,
-            
+
             // Order status counts
             'pendingOrders' => $pendingOrders,
             'failedOrders' => $failedOrders,
-            
+
             // Percentage changes for UI
             'totalOrdersChange' => $totalOrdersChange,
             'revenueChange' => $revenueChange,
             'pendingChange' => $pendingChange,
             'dailyChange' => $dailyChange,
-            
+
             // Chart data
             'orderChartData' => $this->getOrderChartData($range === 'today' ? 1 : ($range === 'week' ? 7 : ($range === 'year' ? 365 : 30))),
-            
+
             // Recent transactions
             'recentTransactions' => Order::with(['items.product'])
-                                    ->latest()
-                                    ->take(8)
-                                    ->get(),
-            
+                ->latest()
+                ->take(8)
+                ->get(),
+
             // Top products
             'topProducts' => $topProducts,
-            
+
             // Order status distribution
             'orderStatusData' => $this->getOrderStatusData()
         ]);
     }
-    
+
     protected function calculatePercentageChange($oldValue, $newValue)
     {
         if ($oldValue == 0) {
             return $newValue == 0 ? 0 : 100;
         }
-        
+
         return round((($newValue - $oldValue) / $oldValue) * 100, 1);
     }
-    
+
     protected function getOrderChartData($days = 30)
     {
         $endDate = Carbon::today();
         $startDate = Carbon::today()->subDays($days);
-        
+
         $dates = [];
         $currentDate = $startDate->copy();
-        
+
         while ($currentDate <= $endDate) {
             $dates[$currentDate->format('Y-m-d')] = 0;
             $currentDate->addDay();
         }
-        
+
         $orders = Order::select(
-                DB::raw('DATE(created_at) as date'),
-                DB::raw('count(*) as count')
-            )
+            DB::raw('DATE(created_at) as date'),
+            DB::raw('count(*) as count')
+        )
             ->where('status', '!=', self::STATUS_CANCELLED)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->groupBy('date')
             ->pluck('count', 'date');
-        
+
         return [
             'labels' => array_keys($dates),
             'data' => array_values(array_merge($dates, $orders->toArray()))
         ];
     }
-    
+
     protected function getOrderStatusData()
     {
         $statuses = Order::select('status', DB::raw('count(*) as count'))
@@ -203,7 +214,7 @@ class AdminController extends Controller
             'refunded' => '#6f42c1' // Ungu
         ];
 
-        return $statuses->map(function($item) use ($statusColors) {
+        return $statuses->map(function ($item) use ($statusColors) {
             return [
                 'status' => $item->status,
                 'count' => $item->count,
@@ -215,17 +226,17 @@ class AdminController extends Controller
     public function chartData(Request $request)
     {
         $period = $request->input('period', 'week');
-        
+
         $endDate = Carbon::today();
         $startDate = Carbon::today()->subDays($period === 'year' ? 365 : ($period === 'month' ? 30 : 7));
 
         // Format label yang lebih friendly
         $dateFormat = $period === 'year' ? 'M Y' : 'D, d M';
-        
+
         $orders = Order::select(
-                DB::raw("DATE_FORMAT(created_at, '%Y-%m-%d') as date"),
-                DB::raw('count(*) as count')
-            )
+            DB::raw("DATE_FORMAT(created_at, '%Y-%m-%d') as date"),
+            DB::raw('count(*) as count')
+        )
             ->where('status', '!=', self::STATUS_CANCELLED)
             ->whereBetween('created_at', [$startDate, $endDate])
             ->groupBy('date')
@@ -235,16 +246,16 @@ class AdminController extends Controller
         $labels = [];
         $data = [];
         $currentDate = $startDate->copy();
-        
+
         while ($currentDate <= $endDate) {
             $dateKey = $currentDate->format('Y-m-d');
             $formattedLabel = $currentDate->format($dateFormat);
-            
+
             $labels[] = $formattedLabel;
-            
+
             $order = $orders->firstWhere('date', $dateKey);
             $data[] = $order ? $order->count : 0;
-            
+
             $currentDate->addDay();
         }
 
@@ -258,14 +269,14 @@ class AdminController extends Controller
     protected function getOrderTrendData($startDate, $endDate, $period)
     {
         $groupFormat = 'Y-m-d'; // Default format harian
-        
+
         if ($period === 'year') {
             $groupFormat = 'Y-m'; // Grup per bulan untuk tampilan tahunan
         }
 
         $dates = [];
         $currentDate = $startDate->copy();
-        
+
         while ($currentDate <= $endDate) {
             $dates[$currentDate->format($groupFormat)] = 0;
             if ($period === 'year') {
@@ -276,9 +287,9 @@ class AdminController extends Controller
         }
 
         $orders = Order::select(
-                DB::raw("DATE_FORMAT(created_at, '".$groupFormat."') as date"),
-                DB::raw('count(*) as count')
-            )
+            DB::raw("DATE_FORMAT(created_at, '" . $groupFormat . "') as date"),
+            DB::raw('count(*) as count')
+        )
             ->whereBetween('created_at', [$startDate, $endDate])
             ->groupBy('date')
             ->pluck('count', 'date');
@@ -289,13 +300,14 @@ class AdminController extends Controller
         ];
     }
 
-    public function customer(Request $request) {
+    public function customer(Request $request)
+    {
         session()->put('menu', 'users');
-        
+
         $search = $request->input('search');
-        
+
         $customers = User::query()
-            ->when($search, function($query) use ($search) {
+            ->when($search, function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%");
             })
@@ -307,11 +319,13 @@ class AdminController extends Controller
         return view('admin.customer', compact('customers'));
     }
 
-    public function create() {
+    public function create()
+    {
         return view('admin.products.create');
     }
 
-    public function store(Request $request) {
+    public function store(Request $request)
+    {
         // Validasi data
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -329,13 +343,12 @@ class AdminController extends Controller
                 $imageName = time() . '.' . $image->getClientOriginalExtension();
                 $image->move(public_path('images/products'), $imageName);
                 $validated['image'] = 'images/products/' . $imageName;
-            }
-            else{
+            } else {
                 $validated['image'] = 'images/products/default.jpg';
             }
             // Menyimpan produk jika validasi berhasil
             Product::create($validated);
-            
+
             // Mengembalikan respons untuk AJAX
             return response()->json(['success' => 'Produk berhasil ditambahkan']);
         } catch (\Exception $e) {
@@ -391,15 +404,15 @@ class AdminController extends Controller
     public function orders(Request $request)
     {
         $orders = Order::with('customer')
-            ->when($request->search, function($query) use ($request) {
-                $query->where(function($q) use ($request) {
-                    $q->where('order_code', 'like', '%'.$request->search.'%')
-                      ->orWhereHas('customer', function($q) use ($request) {
-                          $q->where('name', 'like', '%'.$request->search.'%');
-                      });
+            ->when($request->search, function ($query) use ($request) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('order_code', 'like', '%' . $request->search . '%')
+                        ->orWhereHas('customer', function ($q) use ($request) {
+                            $q->where('name', 'like', '%' . $request->search . '%');
+                        });
                 });
             })
-            ->when($request->status, function($query) use ($request) {
+            ->when($request->status, function ($query) use ($request) {
                 $query->where('status', $request->status);
             })
             ->orderBy('created_at', 'desc')
@@ -423,7 +436,7 @@ class AdminController extends Controller
     public function confirmOrder(Request $request, $id)
     {
         $order = Order::findOrFail($id);
-        
+
         if ($order->status != 'pending') {
             return redirect()->back()->with('error', 'Pesanan tidak dapat dikonfirmasi karena status bukan pending.');
         }
@@ -450,7 +463,7 @@ class AdminController extends Controller
         ]);
 
         $order = Order::findOrFail($id);
-        
+
         if ($order->status != 'confirmed') {
             return redirect()->back()->with('error', 'Pesanan tidak dapat dikirim karena belum dikonfirmasi.');
         }
@@ -474,7 +487,7 @@ class AdminController extends Controller
     public function completeOrder($id)
     {
         $order = Order::findOrFail($id);
-        
+
         if ($order->status != 'shipped') {
             return redirect()->back()->with('error', 'Pesanan tidak dapat diselesaikan karena belum dikirim.');
         }
@@ -486,5 +499,4 @@ class AdminController extends Controller
 
         return redirect()->route('admin.orders')->with('success', 'Pesanan berhasil diselesaikan.');
     }
-    
 }

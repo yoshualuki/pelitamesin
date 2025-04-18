@@ -6,29 +6,48 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\User;
-use App\Models\Order;   
+use App\Models\Order;
 use App\Models\Admin;
 use Illuminate\Support\Facades\DB;
 use App\Http\Middleware\AdminMiddleware;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Support\Facades\Session;
 
 
-class AdminUserController extends Controller
+class AdminUserController extends Controller implements HasMiddleware
 {
+
+    /**
+     * Get the middleware that should be assigned to the controller.
+     */
+    public static function middleware(): array
+    {
+        return [
+            new Middleware(function ($request, $next) {
+                $user = Session::get('user');
+                if ($user == null || ($user->role != 'admin' && $user->role != 'owner')) {
+                    return redirect()->route('login');
+                }
+                return $next($request);
+            }),
+        ];
+    }
 
     public function index(Request $request)
     {
-        
+
         session()->put('menu', 'users');
-        
+
         $search = $request->input('search');
-        
+
         $customers = User::query()
-            ->when($search, function($query) use ($search) {
+            ->when($search, function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%");
             })
-            ->where('role','user')
+            ->where('role', 'user')
             ->orderBy('created_at', 'desc')
             ->paginate(10)
             ->appends($request->query());
@@ -49,11 +68,13 @@ class AdminUserController extends Controller
     }
 
 
-    public function create() {
+    public function create()
+    {
         return view('admin.products.create');
     }
 
-    public function store(Request $request) {
+    public function store(Request $request)
+    {
         // Validasi data
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -71,13 +92,12 @@ class AdminUserController extends Controller
                 $imageName = time() . '.' . $image->getClientOriginalExtension();
                 $image->move(public_path('images/products'), $imageName);
                 $validated['image'] = 'images/products/' . $imageName;
-            }
-            else{
+            } else {
                 $validated['image'] = 'images/products/default.jpg';
             }
             // Menyimpan produk jika validasi berhasil
             Product::create($validated);
-            
+
             // Mengembalikan respons untuk AJAX
             // return response()->json(['success' => 'Produk berhasil ditambahkan']);
             return redirect()->route('admin.product')->with('success', 'Produk berhasil ditambahkan');
@@ -94,8 +114,8 @@ class AdminUserController extends Controller
 
     public function update(Request $request, Product $product)
     {
-        try{
-            
+        try {
+
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'price' => 'required|numeric|min:0',
@@ -105,18 +125,18 @@ class AdminUserController extends Controller
                 'brand' => 'required|string|max:255',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
             ]);
-    
+
             if ($request->hasFile('image')) {
                 $image = $request->file('image');
                 $imageName = time() . '.' . $image->getClientOriginalExtension();
                 $image->move(public_path('images/products'), $imageName);
                 $validated['image'] = 'images/products/' . $imageName;
             }
-    
+
             $product->update($validated);
-    
+
             return redirect()->route('admin.product')->with('success', 'Produk berhasil diupdate');
-        }catch(\Exception $e){
+        } catch (\Exception $e) {
             return redirect()->route('admin.product.edit', $product)->with('error', 'Gagal mengupdate produk: ' . $e->getMessage());
         }
     }
@@ -132,6 +152,4 @@ class AdminUserController extends Controller
             return redirect()->route('admin.product')->with('error', 'Gagal menghapus produk: ' . $e->getMessage());
         }
     }
-
-    
 }

@@ -5,10 +5,30 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Inventory;
 use App\Models\Product;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Session;
+use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Routing\Controllers\HasMiddleware;
 
-class InventoryController extends Controller
+class InventoryController extends Controller implements HasMiddleware
 {
+    /**
+     * Get the middleware that should be assigned to the controller.
+     */
+    public static function middleware(): array
+    {
+        return [
+            new Middleware(function ($request, $next) {
+                $user = Session::get('user');
+                if ($user == null || ($user->role != 'owner')) {
+                    return redirect()->route('login');
+                }
+                return $next($request);
+            }),
+        ];
+    }
+
     public function index()
     {
         session()->put('menu', 'inventory');
@@ -19,26 +39,32 @@ class InventoryController extends Controller
 
         // return view('admin.inventory.index', compact('inventories'));
         $search = request('search');
-    
+
         $query = Inventory::with('product')
             ->orderBy('last_restocked_at', 'desc');
-        
+
         if ($search) {
-            $query->whereHas('product', function($q) use ($search) {
+            $query->whereHas('product', function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                ->orWhere('sku', 'like', "%{$search}%");
+                    ->orWhere('sku', 'like', "%{$search}%");
             });
         }
-        
+
         return view('admin.inventory.index', [
             'inventories' => $query->paginate(10),
-            'totalItems' => Inventory::count(),
+            'totalItems' => Product::whereHas('inventories')->count(),
             'totalValue' => Inventory::sum('total_cost'),
-            'lowStockCount' => Inventory::where('quantity', '<', 10)->count(),
+            'lowStockCount' => DB::table('inventories')
+                ->select('product_id')
+                ->groupBy('product_id')
+                ->havingRaw('SUM(quantity) < 10')
+                ->count(),
             'recentlyAddedCount' => Inventory::where('created_at', '>', now()->subDays(7))->count(),
             'lowStockItems' => Inventory::with('product')
-                ->where('quantity', '<', 10)
-                ->orderBy('quantity')
+                ->select('product_id', DB::raw('SUM(quantity) as total_quantity'))
+                ->groupBy('product_id')
+                ->having('total_quantity', '<', 10)
+                ->orderBy('total_quantity')
                 ->limit(5)
                 ->get(),
         ]);
@@ -62,15 +88,29 @@ class InventoryController extends Controller
             'product_id' => $validated['product_id'],
             'quantity' => $validated['quantity'],
             'unit_cost' => $validated['unit_cost'],
+            'total_cost' => $validated['unit_cost'] * $validated['quantity'],
             'last_restocked_at' => now(),
         ]);
 
-        return redirect()->route('admin.inventory.index')
-            ->with('success', 'Inventory item added successfully!');
+        $product = $inventory->product;
+        $product->stock += $inventory->quantity;
+        $product->save();
+
+        return response()->json(['success' => 'Inventory item added successfully!']);
     }
 
     public function edit(Inventory $inventory)
     {
+        // Return JSON response for AJAX requests (modal)
+        if (request()->ajax()) {
+            return response()->json([
+                'inventory' => $inventory,
+                'product' => $inventory->product,
+                'current_stock' => $inventory->product->current_stock ?? 0
+            ]);
+        }
+
+        // Fallback for non-AJAX requests (if needed)
         $products = Product::all();
         return view('admin.inventory.edit', compact('inventory', 'products'));
     }
@@ -78,26 +118,51 @@ class InventoryController extends Controller
     public function update(Request $request, Inventory $inventory)
     {
         $validated = $request->validate([
-            'product_id' => 'required|exists:products,id',
             'quantity' => 'required|integer|min:1',
-            'unit_cost' => 'required|numeric|min:0',
+            'unit_cost' => 'required|numeric|min:0.01'
         ]);
+
+        $inventory = Inventory::findOrFail($request->id);
+
+        // Calculate stock difference
+        $quantityDifference = $validated['quantity'] - $inventory->quantity;
 
         $inventory->update([
-            'product_id' => $validated['product_id'],
             'quantity' => $validated['quantity'],
             'unit_cost' => $validated['unit_cost'],
-            'last_restocked_at' => now(),
+            'total_cost' => $validated['quantity'] * $validated['unit_cost']
         ]);
 
-        return redirect()->route('admin.inventory.index')
-            ->with('success', 'Inventory item updated successfully!');
+        // Update product stock
+        $product = $inventory->product;
+        $product->stock += $quantityDifference;
+        $product->save();
+
+        return response()->json([
+            'message' => 'Stock updated successfully!'
+        ]);
     }
 
     public function destroy(Inventory $inventory)
     {
-        $inventory->delete();
-        return redirect()->route('admin.inventory.index')
-            ->with('success', 'Inventory item deleted successfully!');
+        try {
+            DB::transaction(function () use ($inventory) {
+                $product = $inventory->product;
+
+                // Reduce product stock before deletion
+                $product->stock -= $inventory->quantity;
+                $product->save();
+
+                $inventory->delete();
+            });
+
+            return response()->json([
+                'message' => 'Stok berhasil dihapus!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal menghapus stok. ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

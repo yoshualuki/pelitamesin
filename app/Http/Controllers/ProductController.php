@@ -104,4 +104,12 @@ class ProductController extends Controller
         return view('customer.productDetail', compact('product', 'relatedProducts'));
     }
 
+    public function search(Request $request){
+        return \App\Models\Product::query()
+        ->where('name', 'like', '%'.$request->q.'%')
+        ->orWhere('description', 'like', '%'.$request->q.'%')
+        ->limit(10)
+        ->get();
+
+    }
 }   

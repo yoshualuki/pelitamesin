@@ -9,21 +9,38 @@ use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Support\Facades\Session;
 
 
-
-class ReturAdminController extends Controller
+class ReturAdminController extends Controller implements HasMiddleware
 {
+    /**
+     * Get the middleware that should be assigned to the controller.
+     */
+    public static function middleware(): array
+    {
+        return [
+            new Middleware(function ($request, $next) {
+                $user = Session::get('user');
+                if ($user == null || ($user->role != 'admin' && $user->role != 'owner')) {
+                    return redirect()->route('login');
+                }
+                return $next($request);
+            }),
+        ];
+    }
+
     public function index()
     {
-        
         $retur = session()->get('retur');
-        $item= session()->get('retur');
+        $item = session()->get('retur');
         $order = Order::all();
         $orderDetail = OrderDetail::all();
         $product = Product::all();
         return view('admin.returAdmin', compact('retur', 'order', 'orderDetail', 'product', 'item'));
-        }
+    }
 
     public function create()
     {
@@ -50,7 +67,7 @@ class ReturAdminController extends Controller
         $retur->reason = $request->reason;
         $retur->save();
         return redirect()->route('admin.retur.index');
-    }   
+    }
 
     public function search(Request $request)
     {
@@ -61,43 +78,13 @@ class ReturAdminController extends Controller
         $user = User::all();
         return view('admin.returAdmin', compact('retur', 'order', 'orderDetail', 'product', 'user'));
         return redirect()->route('admin.retur.index');
-        
+    }
 
-    }   
-    
 
-    // public function update(Request $request, $id)
-    // {
-    //     $retur = Retur::find($id);
-    //     $retur->order_id = $request->order_id;
-    //     $retur->product_id = $request->product_id;
-    //     $retur->quantity = $request->quantity;
-    //     $retur->reason = $request->reason;
-    //     $retur->save();
-    //     return redirect()->route('admin.retur.index');  
-    // }
-
-    // public function destroy($id)
-    // {
-    //     $retur = Retur::find($id);
-    //     $retur->delete();   
-    //     $order = Order::find($id);
-    //     $order->delete();
-    //     $orderDetail = OrderDetail::find($id);
-    //     $orderDetail->delete();
-    //     $product = Product::find($id);
-    //     $product->delete();
-    //     $user = User::find($id);    
-    //     return redirect()->route('admin.retur.index');
-    // }
 
     public function show($id)
     {
         $retur = Retur::find($id);
-        return view('admin.returAdmin', compact('retur'));  
+        return view('admin.returAdmin', compact('retur'));
     }
-
-
 }
-
-
