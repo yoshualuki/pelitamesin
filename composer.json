@@ -15,7 +15,6 @@
         "laravel/framework": "12.*",
         "laravel/tinker": "^2.0",
         "midtrans/midtrans-php": "^2.6.1",
-        "spatie/laravel-backup": "^9.2",
         "synergitech/laravel-alert": "^2.0"
     },
     "require-dev": {
