@@ -36,157 +36,167 @@
                 <h1 class="h3 mb-1">Pesanan Saya</h1>
                 <p class="text-muted mb-0">Kelola dan pantau status pesanan Anda</p>
             </div>
-        </div>
 
-        <div class="filter-bar mb-4">
-            <div class="d-flex flex-column gap-2">
-                <h4 class="text-muted mb-2 fs-6">Filter berdasarkan status:</h4>
-                <div class="filter-nav d-flex align-items-center gap-2 overflow-x-auto pb-3">
-                    <a href="{{ route('orders') }}" class="filter-pill text-nowrap{{ !request('status') ? ' active' : '' }}">
-                        <i class="fas fa-layer-group me-2"></i>Semua
-                    </a>
-                    @foreach ($statuses as $key => $status)
-                        <a href="{{ route('orders', ['status' => $key]) }}"
-                            class="filter-pill text-nowrap{{ request('status') === $key ? ' active' : '' }}">
-                            <i class="fas {{ getStatusIcon($key) }} me-2"></i>
-                            {{ $status }}
-                        </a>
-                    @endforeach
-                </div>
+            <div class="col-md-4">
+                <form action="{{ route('orders') }}" method="GET">
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control" placeholder="Cari kode order/nama produk..."
+                            value="{{ request('search') }}">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
+    </div>
+
+    <div class="filter-bar mb-4">
+        <div class="d-flex flex-column gap-2">
+            <h4 class="text-muted mb-2 fs-6">Filter berdasarkan status:</h4>
+            <div class="filter-nav d-flex align-items-center gap-2 overflow-x-auto pb-3">
+                <a href="{{ route('orders') }}" class="filter-pill text-nowrap{{ !request('status') ? ' active' : '' }}">
+                    <i class="fas fa-layer-group me-2"></i>Semua
+                </a>
+                @foreach ($statuses as $key => $status)
+                    <a href="{{ route('orders', ['status' => $key]) }}"
+                        class="filter-pill text-nowrap{{ request('status') === $key ? ' active' : '' }}">
+                        <i class="fas {{ getStatusIcon($key) }} me-2"></i>
+                        {{ $status }}
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    </div>
 
 
-        <div class="row g-4">
-            @forelse($orders as $order)
-                <div class="col-12">
-                    <div class="card border-0 shadow-sm hover-shadow rounded-4 mb-2">
-                        <div class="card-body p-4">
-                            <div class="row align-items-center gy-3">
-                                <!-- Order Header -->
-                                <div class="col-lg-3 col-md-4">
-                                    <div class="d-flex flex-column gap-1">
-                                        <div class="d-flex align-items-center mb-1">
-                                            <i class="fas fa-shopping-bag text-primary me-2"></i>
-                                            <span class="fw-medium">#{{ $order->order_id }}</span>
-                                        </div>
-                                        <div class="text-muted small">
-                                            <i class="far fa-calendar me-1"></i>
-                                            {{ $order->created_at->translatedFormat('d F Y') }}
-                                            <span class="mx-1">•</span>
-                                            <i class="far fa-clock me-1"></i>
-                                            {{ $order->created_at->format('H:i') }}
-                                        </div>
+    <div class="row g-4">
+        @forelse($orders as $order)
+            <div class="col-12">
+                <div class="card border-0 shadow-sm hover-shadow rounded-4 mb-2">
+                    <div class="card-body p-4">
+                        <div class="row align-items-center gy-3">
+                            <!-- Order Header -->
+                            <div class="col-lg-3 col-md-4">
+                                <div class="d-flex flex-column gap-1">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="fas fa-shopping-bag text-primary me-2"></i>
+                                        <span class="fw-medium">#{{ $order->order_id }}</span>
+                                    </div>
+                                    <div class="text-muted small">
+                                        <i class="far fa-calendar me-1"></i>
+                                        {{ $order->created_at->translatedFormat('d F Y') }}
+                                        <span class="mx-1">•</span>
+                                        <i class="far fa-clock me-1"></i>
+                                        {{ $order->created_at->format('H:i') }}
                                     </div>
                                 </div>
-                                <!-- Order Items -->
-                                <div class="col-lg-6 col-md-5">
-                                    <div class="products-preview bg-light rounded-3 p-3">
-                                        @foreach ($order->items->take(2) as $item)
-                                            <div
-                                                class="product-item d-flex align-items-center {{ !$loop->last ? 'mb-2 pb-2 border-bottom' : '' }}">
-                                                <div class="flex-shrink-0">
-                                                    <img src="{{ asset($item->products->image ?? 'images/default-product.png') }}"
-                                                        class="rounded-2" width="60" height="60"
-                                                        style="object-fit: cover;">
-                                                </div>
-                                                <div class="flex-grow-1 ms-3">
-                                                    <h6 class="product-name mb-1">{{ $item->products->name }}</h6>
-                                                    <div class="d-flex align-items-center">
-                                                        <span class="badge bg-white text-dark border me-2">
-                                                            {{ $item->quantity }}x
-                                                        </span>
-                                                        <span class="text-muted small">
-                                                            Rp {{ number_format($item->price, 0, ',', '.') }}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div class="text-end ms-3">
-                                                    <span class="fw-medium text-primary">
-                                                        Rp {{ number_format($item->quantity * $item->price, 0, ',', '.') }}
+                            </div>
+                            <!-- Order Items -->
+                            <div class="col-lg-6 col-md-5">
+                                <div class="products-preview bg-light rounded-3 p-3">
+                                    @foreach ($order->items->take(2) as $item)
+                                        <div
+                                            class="product-item d-flex align-items-center {{ !$loop->last ? 'mb-2 pb-2 border-bottom' : '' }}">
+                                            <div class="flex-shrink-0">
+                                                <img src="{{ asset($item->products->image ?? 'images/default-product.png') }}"
+                                                    class="rounded-2" width="60" height="60"
+                                                    style="object-fit: cover;">
+                                            </div>
+                                            <div class="flex-grow-1 ms-3">
+                                                <h6 class="product-name mb-1">{{ $item->products->name }}</h6>
+                                                <div class="d-flex align-items-center">
+                                                    <span class="badge bg-white text-dark border me-2">
+                                                        {{ $item->quantity }}x
+                                                    </span>
+                                                    <span class="text-muted small">
+                                                        Rp {{ number_format($item->price, 0, ',', '.') }}
                                                     </span>
                                                 </div>
                                             </div>
-                                        @endforeach
-                                        @if ($order->items->count() > 2)
-                                            <div class="text-center mt-2 pt-2 border-top">
-                                                <a href="{{ route('orders.show', $order) }}" class="text-decoration-none">
-                                                    <span class="text-primary small fw-medium">
-                                                        <i class="fas fa-plus-circle me-1"></i>
-                                                        {{ $order->items->count() - 2 }} item lainnya
-                                                    </span>
-                                                </a>
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
-                                <!-- Order Actions -->
-                                <div class="col-lg-3 col-md-3">
-                                    <div class="d-flex flex-column h-100 justify-content-between">
-                                        <div>
-                                            <span
-                                                class="badge bg-{{ getStatusColor($order->status) }} rounded-pill d-block mb-2">
-                                                <i class="fas {{ getStatusIcon($order->status) }} me-1"></i>
-                                                {{ $statuses[$order->status] ?? $order->status }}
-                                            </span>
-                                            <div class="text-end">
-                                                <div class="text-muted small mb-1">Total Belanja</div>
-                                                <h5 class="mb-3 fw-bold text-primary">
-                                                    Rp
-                                                    {{ number_format($order->total_amount + $order->shipping_cost, 0, ',', '.') }}
-                                                </h5>
+                                            <div class="text-end ms-3">
+                                                <span class="fw-medium text-primary">
+                                                    Rp {{ number_format($item->quantity * $item->price, 0, ',', '.') }}
+                                                </span>
                                             </div>
                                         </div>
-                                        <div class="d-grid gap-2">
-                                            <a href="{{ route('orders.show', $order) }}" class="btn btn-outline-primary">
-                                                <i class="fas fa-eye me-1"></i> Detail
+                                    @endforeach
+                                    @if ($order->items->count() > 2)
+                                        <div class="text-center mt-2 pt-2 border-top">
+                                            <a href="{{ route('orders.show', $order) }}" class="text-decoration-none">
+                                                <span class="text-primary small fw-medium">
+                                                    <i class="fas fa-plus-circle me-1"></i>
+                                                    {{ $order->items->count() - 2 }} item lainnya
+                                                </span>
                                             </a>
-                                            @if ($order->status === 'waiting_payment')
-                                                <a href="{{ route('checkout.process-payment', $order) }}"
-                                                    class="btn btn-primary">
-                                                    <i class="fas fa-credit-card me-1"></i> Bayar
-                                                </a>
-                                            @elseif ($order->status === 'shipped')
-                                                <button class="btn btn-success mt-2" data-bs-toggle="modal"
-                                                    data-bs-target="#confirmDeliveryModal"
-                                                    data-order-id="{{ $order->id }}">
-                                                    <i class="fas fa-check-circle me-1"></i>Konfirmasi Barang Diterima
-                                                </button>
-                                            @endif
                                         </div>
+                                    @endif
+                                </div>
+                            </div>
+                            <!-- Order Actions -->
+                            <div class="col-lg-3 col-md-3">
+                                <div class="d-flex flex-column h-100 justify-content-between">
+                                    <div>
+                                        <span
+                                            class="badge bg-{{ getStatusColor($order->status) }} rounded-pill d-block mb-2">
+                                            <i class="fas {{ getStatusIcon($order->status) }} me-1"></i>
+                                            {{ $statuses[$order->status] ?? $order->status }}
+                                        </span>
+                                        <div class="text-end">
+                                            <div class="text-muted small mb-1">Total Belanja</div>
+                                            <h5 class="mb-3 fw-bold text-primary">
+                                                Rp
+                                                {{ number_format($order->total_amount + $order->shipping_cost, 0, ',', '.') }}
+                                            </h5>
+                                        </div>
+                                    </div>
+                                    <div class="d-grid gap-2">
+                                        <a href="{{ route('orders.show', $order) }}" class="btn btn-outline-primary">
+                                            <i class="fas fa-eye me-1"></i> Detail
+                                        </a>
+                                        @if ($order->status === 'waiting_payment')
+                                            <a href="{{ route('checkout.process-payment', $order) }}"
+                                                class="btn btn-primary">
+                                                <i class="fas fa-credit-card me-1"></i> Bayar
+                                            </a>
+                                        @elseif ($order->status === 'shipped')
+                                            <button class="btn btn-success mt-2" data-bs-toggle="modal"
+                                                data-bs-target="#confirmDeliveryModal" data-order-id="{{ $order->id }}">
+                                                <i class="fas fa-check-circle me-1"></i>Konfirmasi Barang Diterima
+                                            </button>
+                                        @endif
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            @empty
-                <div class="col-12">
-                    <div class="card border-0 shadow-sm rounded-4">
-                        <div class="card-body text-center py-5">
-                            <img src="{{ asset('images/empty-history.svg') }}" class="img-fluid mb-4"
-                                style="max-height: 200px">
-                            <h4 class="mb-2">Belum Ada Pesanan</h4>
-                            <p class="text-muted mb-4">Mulai berbelanja dan temukan produk yang Anda butuhkan</p>
-                            <a href="{{ route('home') }}" class="btn btn-primary btn-lg px-4">
-                                <i class="fas fa-shopping-bag me-2"></i>Mulai Belanja
-                            </a>
-                        </div>
+            </div>
+        @empty
+            <div class="col-12">
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-body text-center py-5">
+                        <img src="{{ asset('images/empty-history.svg') }}" class="img-fluid mb-4"
+                            style="max-height: 200px">
+                        <h4 class="mb-2">Belum Ada Pesanan</h4>
+                        <p class="text-muted mb-4">Mulai berbelanja dan temukan produk yang Anda butuhkan</p>
+                        <a href="{{ route('home') }}" class="btn btn-primary btn-lg px-4">
+                            <i class="fas fa-shopping-bag me-2"></i>Mulai Belanja
+                        </a>
                     </div>
                 </div>
-            @endforelse
-        </div>
-
-        @if ($orders->count() > 0)
-            <div class="d-flex justify-content-center mt-5">
-                {{ $orders->links() }}
             </div>
-        @endif
+        @endforelse
+    </div>
+
+    @if ($orders->count() > 0)
+        <div class="d-flex justify-content-center mt-5">
+            {{ $orders->links() }}
+        </div>
+    @endif
     </div>
 
 
-
-    {{-- Tambahkan modal di bawah kode --}}
     <div class="modal fade" id="confirmDeliveryModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">

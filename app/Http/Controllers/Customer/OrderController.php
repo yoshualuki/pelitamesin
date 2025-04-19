@@ -30,11 +30,19 @@ class OrderController extends Controller
         $status = request('status');
 
         $orders = Order::with(['user', 'items.products'])
-            ->when($status && array_key_exists($status, $statuses), function ($query) use ($status) {
-                $query->where('status', $status);
+            ->when(request('status'), function ($query) {
+                $query->where('status', request('status'));
+            })
+            ->when(request('search'), function ($query) {
+                $query->where(function ($q) {
+                    $q->where('order_id', 'like', '%' . request('search') . '%')
+                        ->orWhereHas('items.products', function ($productQuery) {
+                            $productQuery->where('name', 'like', '%' . request('search') . '%');
+                        });
+                });
             })
             ->latest()
-            ->paginate(10)
+            ->paginate(5) // Reduce from 10 to 5 items per page
             ->appends(request()->query());
 
         return view('customer.orders', compact('orders', 'statuses'));
@@ -140,18 +148,18 @@ class OrderController extends Controller
             'review' => 'nullable|string|max:500',
             'media.*' => 'nullable|file|mimes:jpg,jpeg,png,mp4,mov|max:5120'
         ]);
-    
+
         $order = Order::findOrFail($request->order_id);
-        
+
         // Update order status
         $order->update(['status' => 'completed']);
-        
+
         // Save rating
         $rating = $order->rating()->create([
             'rating' => $request->rating,
             'review' => $request->review
         ]);
-    
+
         // Handle media upload
         if ($request->hasFile('media')) {
             foreach ($request->file('media') as $file) {
@@ -159,7 +167,7 @@ class OrderController extends Controller
                 $rating->media()->create(['file_path' => Storage::url($path)]);
             }
         }
-    
+
         return response()->json(['message' => 'Terima kasih atas penilaiannya!']);
     }
 }

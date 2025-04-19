@@ -52,6 +52,7 @@ class Order extends Model
     protected $casts = [
         'paid_at' => 'datetime',
         'created_at' => 'datetime',
+        'completed_at' => 'datetime',
         'updated_at' => 'datetime',
         // tambahkan field datetime lainnya jika ada
     ];
@@ -95,11 +96,6 @@ class Order extends Model
         return $this->hasMany(OrderRefund::class, 'order_id', 'order_id');
     }
 
-    public function payment()
-    {
-        return $this->hasOne(Payment::class, 'order_id', 'order_id');
-    }
-
     public function cogs()
     {
         $cogs = 0;
@@ -114,7 +110,7 @@ class Order extends Model
     {
         return $this->status === self::STATUS_COMPLETED &&
             $this->completed_at &&
-            $this->completed_at->diffInDays(now()) <= 14;
+            $this->completed_at->diffInDays(now()) <= 7;
     }
 
     public function getRefundableItems()
