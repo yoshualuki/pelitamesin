@@ -64,6 +64,7 @@ Route::prefix('orders')->group(function () {
     // routes/web.php
     Route::post('/{order_id}/confirm-delivery', [OrderController::class, 'confirmDelivery'])
         ->name('orders.confirm-delivery');
+    Route::post('/submit-rating', [OrderController::class, 'submitRating'])->name('orders.submit-rating');
 });
 
 Route::post('/midtrans/webhook', [PaymentController::class, 'handleWebhook']);

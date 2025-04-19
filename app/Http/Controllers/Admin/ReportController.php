@@ -11,9 +11,28 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Session;
+use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Routing\Controllers\HasMiddleware;
 
-class ReportController extends Controller
+class ReportController extends Controller implements HasMiddleware
 {
+    /**
+     * Get the middleware that should be assigned to the controller.
+     */
+    public static function middleware(): array
+    {
+        return [
+            new Middleware(function ($request, $next) {
+                $user = Session::get('user');
+                if ($user == null || ($user->role != 'owner')) {
+                    return redirect()->route('login');
+                }
+                return $next($request);
+            }),
+        ];
+    }
+
     // Daily Transactions Report
     public function dailyTransactions(Request $request)
     {
@@ -167,7 +186,7 @@ class ReportController extends Controller
             default => now()->subMonth(),
         };
 
-        $cancelledOrders = Order::with(['customer', 'items.product'])
+        $cancelledOrders = Order::with(['customer', 'items.products'])
             ->where('status', Order::STATUS_CANCELLED)
             ->where('created_at', '>=', $startDate)
             ->orderBy('created_at', 'desc')

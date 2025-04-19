@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use App\Models\Product;
+use Illuminate\Support\Facades\Storage;
 
 class OrderController extends Controller
 {
@@ -25,9 +26,16 @@ class OrderController extends Controller
             'refunded' => 'Refunded'
         ];
 
-        $orders = Order::with(['user', 'items.product'])
+        // Get the requested status filter
+        $status = request('status');
+
+        $orders = Order::with(['user', 'items.products'])
+            ->when($status && array_key_exists($status, $statuses), function ($query) use ($status) {
+                $query->where('status', $status);
+            })
             ->latest()
-            ->paginate(10);
+            ->paginate(10)
+            ->appends(request()->query());
 
         return view('customer.orders', compact('orders', 'statuses'));
     }
@@ -37,7 +45,7 @@ class OrderController extends Controller
         if (!session()->get('user')) {
             return redirect()->route('login');
         }
-        $order = Order::with(['items.product', 'user'])
+        $order = Order::with(['items.products', 'user'])
             ->where('order_id', $order_id)
             ->firstOrFail();
 
@@ -122,5 +130,36 @@ class OrderController extends Controller
 
         return redirect()->route('orders.show', $order_id)
             ->with('success', 'Pesanan telah dikonfirmasi sebagai diterima');
+    }
+
+    public function submitRating(Request $request)
+    {
+        $request->validate([
+            'order_id' => 'required|exists:orders,id',
+            'rating' => 'required|integer|between:1,5',
+            'review' => 'nullable|string|max:500',
+            'media.*' => 'nullable|file|mimes:jpg,jpeg,png,mp4,mov|max:5120'
+        ]);
+    
+        $order = Order::findOrFail($request->order_id);
+        
+        // Update order status
+        $order->update(['status' => 'completed']);
+        
+        // Save rating
+        $rating = $order->rating()->create([
+            'rating' => $request->rating,
+            'review' => $request->review
+        ]);
+    
+        // Handle media upload
+        if ($request->hasFile('media')) {
+            foreach ($request->file('media') as $file) {
+                $path = $file->store('public/ratings');
+                $rating->media()->create(['file_path' => Storage::url($path)]);
+            }
+        }
+    
+        return response()->json(['message' => 'Terima kasih atas penilaiannya!']);
     }
 }
