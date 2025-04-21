@@ -119,6 +119,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/customer/store', [AdminController::class, 'customer'])->name('customer.store');
     Route::get('/customer/destroy', [AdminController::class, 'customer'])->name('customer.destroy');
 
+    // user admin management
+    Route::get('/useradmin', [AdminUserController::class, 'adminIndex'])->name('useradmin.index');
+    Route::post('/useradmin', [AdminUserController::class, 'storeAdmin'])->name('useradmin.store');
+    Route::post('/useradmin/{id}/toggle', [AdminUserController::class, 'toggleAdminStatus'])->name('useradmin.toggle');
+
 
     // Product Routes
     Route::get('/product', [AdminProductController::class, 'index'])->name('product');

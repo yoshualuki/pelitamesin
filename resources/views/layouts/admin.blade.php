@@ -222,6 +222,13 @@
                 <li class="sidebar-header">Management</li>
 
                 <li>
+                    <a href="{{ route('admin.useradmin.index') }}"
+                        class="sidebar-link @if (session()->get('menu') == 'admin') active @endif">
+                        <i class="sidebar-icon fas fa-users"></i>
+                        <span class="sidebar-text">Admin</span>
+                    </a>
+                </li>
+                <li>
                     <a href="{{ route('admin.customer') }}"
                         class="sidebar-link @if (session()->get('menu') == 'users') active @endif">
                         <i class="sidebar-icon fas fa-users"></i>

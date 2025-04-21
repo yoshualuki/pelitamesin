@@ -6,10 +6,6 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\User;
-use App\Models\Order;
-use App\Models\Admin;
-use Illuminate\Support\Facades\DB;
-use App\Http\Middleware\AdminMiddleware;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -54,19 +50,6 @@ class AdminUserController extends Controller implements HasMiddleware
 
         return view('admin.customer', compact('customers'));
     }
-
-    private function checkAdminAuth()
-    {
-        if (Auth::guard('users')->check()) {
-            $user = Auth::guard('users')->user();
-            if ($user->role === 'admin') {
-                return true; // Pengguna sudah login sebagai admin
-            }
-            return false; // Pengguna sudah login tetapi bukan admin
-        }
-        return false; // Pengguna belum login
-    }
-
 
     public function create()
     {
@@ -151,5 +134,57 @@ class AdminUserController extends Controller implements HasMiddleware
         } catch (\Exception $e) {
             return redirect()->route('admin.product')->with('error', 'Gagal menghapus produk: ' . $e->getMessage());
         }
+    }
+
+    // List all admin users (only accessible by owner)
+    public function adminIndex(Request $request)
+    {
+        session()->put('menu', 'admin');
+
+        $search = $request->input('search');
+
+        $admins = User::query()
+            ->when($search, function ($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            })
+            ->where('role', 'admin')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->appends($request->query());
+
+        return view('admin.useradmin', compact('admins'));
+    }
+
+    // Store new admin user
+    public function storeAdmin(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        $validated['role'] = 'admin';
+        $validated['password'] = bcrypt($validated['password']);
+        $validated['active'] = true;
+
+        User::create($validated);
+
+        $user = User::where(['email' => $validated['email']])->first();
+        $user->role = 'admin';
+        $user->save();
+
+        return redirect()->route('admin.useradmin.index')->with('success', 'Admin user created successfully.');
+    }
+
+    // Deactivate or activate an admin user
+    public function toggleAdminStatus($id)
+    {
+        $admin = User::where('id', $id)->where('role', 'admin')->firstOrFail();
+        $admin->active = !$admin->active;
+        $admin->save();
+
+        return response()->json(['success' => 'Admin status updated.', 'active' => $admin->active]);
     }
 }
