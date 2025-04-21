@@ -129,12 +129,33 @@ class OrderController extends Controller
             ->with('success', 'Pesanan telah dibatalkan');
     }
 
+    public function confirmPickup($order_id, Request $request)
+    {
+        $order = Order::where('order_id', $order_id)->firstOrFail();
+        $order->status = 'shipped';
+        $order->order_sent_at = now();
+        $order->save();
+        return response()->json(['message' => 'Pesanan telah dikonfirmasi sebagai diproses']);
+    }
+
+    public function confirmPickupDone($order_id, Request $request)
+    {
+        $order = Order::where('order_id', $order_id)->firstOrFail();
+        $order->status = 'completed';
+        $order->completed_at = now();
+        $order->save();
+        return redirect()->route('orders.show', $order_id)
+            ->with('success', 'Pesanan telah selesai');
+    }
+
     public function confirmDelivery($order_id, Request $request)
     {
         $order = Order::where('order_id', $order_id)->firstOrFail();
 
         // Validasi status order
-        if ($order->status !== 'shipped') {
+        if (!(
+            $order->status === 'shipped' ||
+            ($order->status === 'completed' && $order->courier === 'self_pickup'))) {
             return response()->json(['error' => 'Tidak dapat mengkonfirmasi pesanan yang belum dikirim'], 422);
         }
 
@@ -175,11 +196,13 @@ class OrderController extends Controller
                 // Handle media upload
                 if ($request->hasFile("ratings.{$item->product_id}.media")) {
                     foreach ($request->file("ratings.{$item->product_id}.media") as $file) {
-                        $path = $file->store('public/ratings');
+                        $path = $file->store('ratings', 'public');
                         $rating->media()->create(['file_path' => Storage::url($path)]);
                     }
                 }
             }
+
+            DB::commit();
             return response()->json(['message' => 'Pesanan telah dikonfirmasi sebagai diterima dan penilaian berhasil disimpan']);
         } catch (\Exception $e) {
             DB::rollBack();

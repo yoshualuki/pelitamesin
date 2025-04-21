@@ -35,7 +35,10 @@ class Order extends Model
         'status',
         'notes',
         'completed_at',
-        'cancel_reason'
+        'cancel_reason',
+        'order_sent_at',
+        'waiting_payment_at',
+        'order_processed_at',
     ];
 
     protected $primaryKey = 'order_id';
@@ -108,9 +111,10 @@ class Order extends Model
         return $cogs;
     }
 
-    public function rating()
+    public function hasRating()
     {
-        return $this->hasOne(Rating::class, 'order_id', 'order_id');
+        $rating = Rating::where('order_id', $this->order_id)->first();
+        return $rating ? true : false;
     }
 
     // Helper methods

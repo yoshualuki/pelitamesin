@@ -62,9 +62,13 @@ Route::prefix('orders')->group(function () {
     Route::put('/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
     Route::post('/{order}/get-snap-token', [OrderController::class, 'getSnapToken'])->name('orders.get-snap-token');
     Route::post('/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.status.update');
-    // routes/web.php
     Route::post('/{order_id}/confirm-delivery', [OrderController::class, 'confirmDelivery'])
         ->name('orders.confirm-delivery');
+    Route::post('/{order_id}/confirm-pickup-done', [OrderController::class, 'confirmPickupDone'])
+        ->name('orders.confirm-pickup-done');
+    Route::post('/{order_id}/confirm-pickup', [OrderController::class, 'confirmPickup'])
+        ->name('orders.confirm-pickup');
+    Route::post('/{order}/submit-review', [OrderController::class, 'submitReview'])->name('orders.submit-review');
 });
 
 Route::post('/midtrans/webhook', [PaymentController::class, 'handleWebhook']);

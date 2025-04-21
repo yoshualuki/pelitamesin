@@ -607,6 +607,7 @@
                     });
                 });
             });
+            
             $('#deliveryRatingForm').submit(function(e) {
                 e.preventDefault();
                 let formData = new FormData(this);

@@ -41,6 +41,11 @@ class OrderDetail extends Model
         return $this->price * $this->quantity;
     }
 
+    public function hasReview()
+    {
+        return Rating::where('order_id', $this->order_id)->where('product_id', $this->product_id)->exists();
+    }
+
     public function getRefundableQuantityAttribute()
     {
         $refunded = $this->refunds()->where('status', '!=', 'rejected')->sum('quantity');
