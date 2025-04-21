@@ -8,17 +8,23 @@
                     <div
                         class="card-header bg-white d-flex flex-column flex-md-row justify-content-between align-items-center py-3">
                         <div class="mb-3 mb-md-0">
-                            <h5 class="mb-0 fw-bold">
-                                <i class="fas fa-trophy me-2 text-warning"></i>Produk Terbaik
-                            </h5>
-                            <p class="mb-0 text-muted small">Berdasarkan rating dan ulasan pelanggan</p>
+                            <div class="d-flex align-items-center">
+                                <div class="icon-shape icon-lg bg-warning text-white rounded-circle me-3">
+                                    <i class="fas fa-trophy fs-4"></i>
+                                </div>
+                                <div>
+                                    <h2 class="h5 mb-0 fw-bold text-warning">PRODUK TERBAIK</h2>
+                                    <p class="mb-0 text-muted small">Berdasarkan rating dan ulasan pelanggan</p>
+                                </div>
+                            </div>
                         </div>
                         <div class="d-flex align-items-center">
-                            <form action="{{ route('admin.reports.top-rated') }}" method="GET"
-                                class="d-flex align-items-center">
-                                <div class="input-group me-2">
-                                    <span class="input-group-text bg-white"><i class="fas fa-filter"></i></span>
-                                    <select name="time_range" class="form-select" onchange="this.form.submit()">
+                            <form action="{{ route('admin.reports.top-rated') }}" method="GET" class="d-flex gap-2">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0"><i
+                                            class="fas fa-calendar-alt text-muted"></i></span>
+                                    <select name="time_range" class="form-select border-start-0 ps-3" style="width: 160px;"
+                                        onchange="this.form.submit()">
                                         <option value="month" {{ request('time_range') == 'month' ? 'selected' : '' }}>
                                             Bulan Ini</option>
                                         <option value="quarter" {{ request('time_range') == 'quarter' ? 'selected' : '' }}>3
@@ -29,9 +35,11 @@
                                             Waktu</option>
                                     </select>
                                 </div>
-                                <div class="input-group" style="width: 120px;">
-                                    <span class="input-group-text bg-white">Show</span>
-                                    <input type="number" name="limit" class="form-control" min="1" max="50"
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0"><i
+                                            class="fas fa-filter text-muted"></i></span>
+                                    <input type="number" name="limit" class="form-control border-start-0 ps-3"
+                                        style="width: 100px;" min="1" max="50" placeholder="Jumlah"
                                         value="{{ request('limit', 10) }}">
                                     <button type="submit" class="btn btn-primary">
                                         <i class="fas fa-check"></i>
