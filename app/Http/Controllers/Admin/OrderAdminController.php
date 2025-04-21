@@ -4,13 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use PDF;
 use App\Http\Controllers\Controller;
-use App\Models\Retur;
 use App\Models\Order;
-use App\Models\OrderDetail;
-use App\Models\Product;
-use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Support\Facades\Session;

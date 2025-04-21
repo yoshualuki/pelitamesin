@@ -33,7 +33,7 @@ class OrderDetail extends Model
 
     public function refunds()
     {
-        return $this->hasMany(OrderRefundItem::class, 'order_item_id');
+        return $this->hasMany(OrderRefundDetail::class, 'order_item_id');
     }
 
     public function getSubtotalAttribute()

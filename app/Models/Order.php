@@ -105,6 +105,11 @@ class Order extends Model
         return $cogs;
     }
 
+    public function rating()
+    {
+        return $this->hasOne(Rating::class, 'order_id', 'order_id');
+    }
+
     // Helper methods
     public function canRequestRefund()
     {

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use App\Models\Rating;
 
 class Product extends Model
 {
@@ -39,6 +40,11 @@ class Product extends Model
     public function inventories()
     {
         return $this->hasMany(Inventory::class, 'product_id');
+    }
+
+    public function ratings()
+    {
+        return $this->hasMany(Rating::class, 'product_id');
     }
 
     // Metode untuk memeriksa ketersediaan stok

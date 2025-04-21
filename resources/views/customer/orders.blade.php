@@ -161,7 +161,8 @@
                                             </a>
                                         @elseif ($order->status === 'shipped')
                                             <button class="btn btn-success mt-2" data-bs-toggle="modal"
-                                                data-bs-target="#confirmDeliveryModal" data-order-id="{{ $order->id }}">
+                                                data-bs-target="#confirmDeliveryModal"
+                                                data-order-id="{{ $order->order_id }}">
                                                 <i class="fas fa-check-circle me-1"></i>Konfirmasi Barang Diterima
                                             </button>
                                         @endif
@@ -207,33 +208,7 @@
                 <form id="deliveryRatingForm" enctype="multipart/form-data">
                     <div class="modal-body">
                         <input type="hidden" name="order_id" id="selected_order_id">
-                        <div class="mb-4">
-                            <label class="form-label">Rating (1-5):</label>
-                            <div class="rating-stars">
-                                @for ($i = 5; $i >= 1; $i--)
-                                    <input type="radio" id="star{{ $i }}" name="rating"
-                                        value="{{ $i }}">
-                                    <label for="star{{ $i }}"><i class="fas fa-star"></i></label>
-                                @endfor
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Ulasan:</label>
-                            <textarea name="review" class="form-control" rows="3"></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Upload Foto/Video:</label>
-                            <div class="file-upload-wrapper">
-                                <input type="file" name="media[]" class="form-control" multiple
-                                    accept="image/*,video/*" data-max-files="5" data-max-videos="1" id="mediaUpload">
-
-                                <div class="preview-container mt-3 row g-2" id="previewContainer"></div>
-
-                                <small class="form-text text-muted">
-                                    Maksimal 5 file (1 video) • Ukuran maksimal per file: 5MB
-                                </small>
-                            </div>
-                        </div>
+                        <div id="products-rating-list"></div>
                     </div>
                     <div class="modal-footer">
                         <button type="submit" class="btn btn-primary">Kirim Penilaian</button>
@@ -534,10 +509,109 @@
 @section('scripts')
     <script>
         $(document).ready(function() {
+            let ordersData = @json($orders->keyBy('order_id'));
+            $('#confirmDeliveryModal').on('show.bs.modal', function(event) {
+                var button = $(event.relatedTarget);
+                var orderId = button.data('order-id');
+                $('#selected_order_id').val(orderId);
+                // Find the order's products
+                let order = ordersData[orderId];
+                let html = '';
+                if (order && order.items) {
+                    order.items.forEach(function(item, idx) {
+                        html += `
+                <div class="mb-4 border-bottom pb-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <img src="/${item.products.image ?? 'images/default-product.png'}" width="50" class="me-2 rounded">
+                        <strong>${item.products.name}</strong>
+                    </div>
+                    <label>Rating (1-5):</label>
+                    <div class="rating-stars mb-2">
+                        ${[5,4,3,2,1].map(i => `
+                                                                                                            <input type="radio" id="star${i}_${idx}" name="ratings[${item.product_id}][rating]" value="${i}">
+                                                                                                            <label for="star${i}_${idx}"><i class="fas fa-star"></i></label>
+                                                                                                        `).join('')}
+                    </div>
+                    <label>Ulasan:</label>
+                    <textarea name="ratings[${item.product_id}][review]" class="form-control mb-2" rows="2"></textarea>
+                    <label>Upload Foto/Video:</label>
+                    <input type="file" name="ratings[${item.product_id}][media][]" class="form-control mb-2 media-upload-input" 
+                        data-preview-container="previewContainer_${item.product_id}" multiple accept="image/*,video/*">
+                    <div class="preview-container mt-3 row g-2" id="previewContainer_${item.product_id}"></div>
+                </div>
+                `;
+                    });
+                }
+                $('#products-rating-list').html(html);
+
+                // Attach preview logic to each file input
+                $('.media-upload-input').each(function() {
+                    $(this).off('change').on('change', function(e) {
+                        const containerId = $(this).data('preview-container');
+                        const container = document.getElementById(containerId);
+                        const maxFiles = 5;
+                        const maxVideos = 1;
+                        const files = Array.from(this.files);
+                        let videoCount = 0;
+
+                        // Reset preview
+                        container.innerHTML = '';
+
+                        // Count existing videos
+                        files.forEach(file => {
+                            if (file.type.startsWith('video/')) videoCount++;
+                        });
+
+                        // Validation
+                        if (files.length > maxFiles) {
+                            alert(`Maksimal ${maxFiles} file diperbolehkan`);
+                            this.value = '';
+                            return;
+                        }
+
+                        if (videoCount > maxVideos) {
+                            alert(`Maksimal ${maxVideos} video diperbolehkan`);
+                            this.value = '';
+                            return;
+                        }
+
+                        // Create previews
+                        files.forEach((file, index) => {
+                            const reader = new FileReader();
+                            const previewItem = document.createElement('div');
+                            previewItem.className = 'col-auto preview-item';
+
+                            if (file.type.startsWith('image/')) {
+                                reader.onload = (e) => {
+                                    previewItem.innerHTML = `
+                                        <img src="${e.target.result}" alt="Preview">
+                                        <div class="file-info">${formatFileSize(file.size)}</div>
+                                    `;
+                                }
+                                reader.readAsDataURL(file);
+                            } else if (file.type.startsWith('video/')) {
+                                previewItem.innerHTML = `
+                                    <div class="d-flex flex-column align-items-center justify-content-center h-100">
+                                        <i class="fas fa-file-video file-type-icon"></i>
+                                        <small class="text-muted mt-1">${file.name}</small>
+                                        <div class="file-info">${formatFileSize(file.size)}</div>
+                                    </div>
+                                `;
+                            }
+
+                            container.appendChild(previewItem);
+                        });
+                    });
+                });
+            });
             $('#deliveryRatingForm').submit(function(e) {
                 e.preventDefault();
                 let formData = new FormData(this);
                 let orderId = $('#selected_order_id').val();
+
+                // Add CSRF token to the FormData
+                formData.append('_token', '{{ csrf_token() }}');
+
                 $.ajax({
                     url: '/orders/' + orderId + '/confirm-delivery',
                     type: 'POST',
@@ -549,88 +623,19 @@
                         Swal.fire({
                             title: 'Berhasil',
                             text: response.message,
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            title: 'Gagal',
+                            text: 'Terjadi kesalahan saat mengirim penilaian',
                         })
                     }
-
-
                 });
             });
         });
-        document.getElementById('mediaUpload').addEventListener('change', function(e) {
-            const container = document.getElementById('previewContainer');
-            const maxFiles = parseInt(this.dataset.maxFiles);
-            const maxVideos = parseInt(this.dataset.maxVideos);
-            const files = Array.from(this.files);
-            let videoCount = 0;
-
-            // Reset preview
-            container.innerHTML = '';
-
-            // Count existing videos
-            files.forEach(file => {
-                if (file.type.startsWith('video/')) videoCount++;
-            });
-
-            // Validation
-            if (files.length > maxFiles) {
-                alert(`Maksimal ${maxFiles} file diperbolehkan`);
-                this.value = '';
-                return;
-            }
-
-            if (videoCount > maxVideos) {
-                alert(`Maksimal ${maxVideos} video diperbolehkan`);
-                this.value = '';
-                return;
-            }
-
-            // Create previews
-            files.forEach((file, index) => {
-                const reader = new FileReader();
-                const previewItem = document.createElement('div');
-                previewItem.className = 'col-auto preview-item';
-
-                const removeBtn = document.createElement('div');
-                removeBtn.className = 'remove-btn';
-                removeBtn.innerHTML = '×';
-                removeBtn.onclick = () => removeFile(index);
-
-                if (file.type.startsWith('image/')) {
-                    reader.onload = (e) => {
-                        previewItem.innerHTML = `
-                        <img src="${e.target.result}" alt="Preview">
-                        ${removeBtn.outerHTML}
-                        <div class="file-info">${formatFileSize(file.size)}</div>
-                    `;
-                    }
-                    reader.readAsDataURL(file);
-                } else if (file.type.startsWith('video/')) {
-                    previewItem.innerHTML = `
-                    <div class="d-flex flex-column align-items-center justify-content-center h-100">
-                        <i class="fas fa-file-video file-type-icon"></i>
-                        <small class="text-muted mt-1">${file.name}</small>
-                        ${removeBtn.outerHTML}
-                        <div class="file-info">${formatFileSize(file.size)}</div>
-                    </div>
-                `;
-                }
-
-                container.appendChild(previewItem);
-            });
-        });
-
-        function removeFile(index) {
-            const input = document.getElementById('mediaUpload');
-            const files = Array.from(input.files);
-            files.splice(index, 1);
-
-            const dataTransfer = new DataTransfer();
-            files.forEach(file => dataTransfer.items.add(file));
-            input.files = dataTransfer.files;
-
-            // Trigger change event to update preview
-            input.dispatchEvent(new Event('change'));
-        }
 
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';

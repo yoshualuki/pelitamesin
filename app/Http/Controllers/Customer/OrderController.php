@@ -7,6 +7,7 @@ use App\Models\Order;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
@@ -123,51 +124,55 @@ class OrderController extends Controller
 
         // Validasi status order
         if ($order->status !== 'shipped') {
-            return back()->with('error', 'Tidak dapat mengkonfirmasi pesanan yang belum dikirim');
+            return response()->json(['error' => 'Tidak dapat mengkonfirmasi pesanan yang belum dikirim'], 422);
         }
 
-        // Update status order
-        $order->update([
-            'status' => 'completed',
-            'completed_at' => now(),
-            'delivery_notes' => $request->notes
-        ]);
-
-        // Kirim notifikasi ke admin
-        // ...
-
-        return redirect()->route('orders.show', $order_id)
-            ->with('success', 'Pesanan telah dikonfirmasi sebagai diterima');
-    }
-
-    public function submitRating(Request $request)
-    {
-        $request->validate([
-            'order_id' => 'required|exists:orders,id',
-            'rating' => 'required|integer|between:1,5',
-            'review' => 'nullable|string|max:500',
-            'media.*' => 'nullable|file|mimes:jpg,jpeg,png,mp4,mov|max:5120'
-        ]);
-
-        $order = Order::findOrFail($request->order_id);
-
-        // Update order status
-        $order->update(['status' => 'completed']);
-
-        // Save rating
-        $rating = $order->rating()->create([
-            'rating' => $request->rating,
-            'review' => $request->review
-        ]);
-
-        // Handle media upload
-        if ($request->hasFile('media')) {
-            foreach ($request->file('media') as $file) {
-                $path = $file->store('public/ratings');
-                $rating->media()->create(['file_path' => Storage::url($path)]);
+        // Validate ratings for each product
+        $ratings = $request->input('ratings', []);
+        foreach ($order->items as $item) {
+            $productRating = $ratings[$item->product_id] ?? null;
+            if (!$productRating || !isset($productRating['rating']) || $productRating['rating'] < 1 || $productRating['rating'] > 5) {
+                return response()->json(['error' => 'Rating untuk semua produk wajib diisi (1-5)'], 422);
             }
         }
 
-        return response()->json(['message' => 'Terima kasih atas penilaiannya!']);
+        DB::beginTransaction();
+        try {
+            // Update order status
+            $order->update([
+                'status' => 'completed',
+                'completed_at' => now(),
+            ]);
+
+            // Save ratings per product
+            foreach ($order->items as $item) {
+                $productRating = $ratings[$item->product_id];
+                $rating = $item->products->ratings()->create([
+                    'order_id' => $order->order_id,
+                    'product_id' => $item->product_id,
+                    'user_id' => $order->user_id,
+                    'rating' => $productRating['rating'],
+                    'review' => $productRating['review'] ?? null,
+                ]);
+
+                $product = $item->products;
+                $totalRating = $product->average_rating * $product->rating_count;
+                $product->rating_count += 1;
+                $product->average_rating = ($totalRating + $productRating['rating']) / $product->rating_count;
+                $product->save();
+
+                // Handle media upload
+                if ($request->hasFile("ratings.{$item->product_id}.media")) {
+                    foreach ($request->file("ratings.{$item->product_id}.media") as $file) {
+                        $path = $file->store('public/ratings');
+                        $rating->media()->create(['file_path' => Storage::url($path)]);
+                    }
+                }
+            }
+            return response()->json(['message' => 'Pesanan telah dikonfirmasi sebagai diterima dan penilaian berhasil disimpan']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Terjadi kesalahan saat mengkonfirmasi pesanan'], 500);
+        }
     }
 }
