@@ -89,11 +89,14 @@
 
                             <!-- Dynamic Location Selection -->
                             <div class="mb-3">
-                                <label for="province" class="form-label">Province <span class="text-danger">*</span></label>
+                                <label for="province" class="form-label">Province<span class="text-danger">*</span></label>
                                 <select class="form-select" id="province" name="province" required>
                                     <option value="">Select Province</option>
                                     @foreach ($provinces as $p)
-                                        <option value="{{ $p['province_id'] }}">{{ $p['province'] }}</option>
+                                        <option value="{{ $p['province_id'] }}"
+                                            @if (str(session()->get('user')->province_id) == str($p['province_id'])) selected @endif>
+                                            {{ $p['province'] }}
+                                        </option>
                                     @endforeach
                                 </select>
                                 <div class="invalid-feedback">Please select province</div>
@@ -101,7 +104,8 @@
 
                             <div class="mb-3">
                                 <label for="city" class="form-label">City <span class="text-danger">*</span></label>
-                                <select class="form-select" id="city" name="city" disabled required>
+                                <select class="form-select" id="city" name="city"
+                                    {{ session()->get('user')->city ? '' : 'disabled' }} required>
                                     <option value="">Select City</option>
                                 </select>
                                 <div class="invalid-feedback">Please select city</div>
@@ -113,12 +117,13 @@
                                     <option value="">Select Courier</option>
                                     <option value="jne">JNE</option>
                                     <option value="pos">POS</option>
+                                    <option value="self_pickup" class="d-none">Self Pickup (Surabaya Only)</option>
                                 </select>
                                 <div class="invalid-feedback">Please select courier</div>
                             </div>
 
 
-                            <div class="mb-3">
+                            <div class="mb-3" id="service-group">
                                 <label for="service" class="form-label">Service <span
                                         class="text-danger">*</span></label>
                                 <select class="form-select" id="service" name="service" disabled required>
@@ -162,18 +167,43 @@
             $('#email').val(`{{ session()->get('user')->email }}`);
             $('#phone').val(`{{ session()->get('user')->phone }}`);
             $('#address').val(`{{ session()->get('user')->address }}`);
-            $('#province').val(`{{ session()->get('user')->province }}`);
-            $('#city').val(`{{ session()->get('user')->city }}`);
-
+            // $('#province').val(`{{ session()->get('user')->province }}`);
+            // Load cities based on selected province
+            // If user has saved province and city, load cities and set selected city
+            const savedProvinceId = `{{ session()->get('user')->province_id }}`;
+            const savedCityId = `{{ session()->get('user')->city_id }}`;
+            const savedCity = `{{ session()->get('user')->city }}`;
+            if (savedProvinceId && savedCityId) {
+                $('#city').prop('disabled', true).html('<option value="">Loading...</option>');
+                if (savedCity.toLowerCase().includes('surabaya')) {
+                    $('#courier option[value="self_pickup"]').removeClass('d-none');
+                } else {
+                    // Hide and reset if not Surabaya
+                    $('#courier option[value="self_pickup"]').addClass('d-none');
+                    if ($('#courier').val() === 'self_pickup') {
+                        $('#courier').val('');
+                    }
+                }
+                $.get(`/cart/cities?province_id=${savedProvinceId}`, function(data) {
+                    let options = '<option value="">Select City</option>';
+                    data.data.forEach(city => {
+                        options +=
+                            `<option value="${city.city_id}"${city.city_id == savedCityId ? ' selected' : ''}>${city.city_name}</option>`;
+                    });
+                    $('#city').html(options).prop('disabled', false);
+                });
+            }
 
             // Form validation
             function validateForm() {
                 let isValid = true;
                 const requiredFields = [
                     '#name', '#email', '#phone', '#address',
-                    '#province', '#city', '#courier', '#service'
+                    '#province', '#city', '#courier'
                 ];
-
+                if ($('#courier').val() != 'self_pickup') {
+                    requiredFields.push('#service');
+                }
                 requiredFields.forEach(field => {
                     const element = $(field);
                     if (!element.val()) {
@@ -233,6 +263,13 @@
             // City change event
             $('#city').on('change', function() {
                 $('#service').prop('disabled', true);
+                var selectedCityText = $('#city option:selected').text().toLowerCase();
+                if (selectedCityText.includes('surabaya')) {
+                    $('#courier option[value="self_pickup"]').removeClass('d-none');
+                } else {
+                    // Hide and reset if not Surabaya
+                    $('#courier option[value="self_pickup"]').addClass('d-none');
+                }
                 resetShippingCost();
             });
 
@@ -240,6 +277,14 @@
             $('#courier').on('change', function() {
                 $('#service').prop('disabled', true);
                 resetShippingCost();
+
+                if ($(this).val() === 'self_pickup') {
+                    $('#service-group').hide();
+                    $('#service').prop('required', false);
+                } else {
+                    $('#service-group').show();
+                    $('#service').prop('required', true);
+                }
             });
 
             // City and Courier change - calculate shipping
@@ -317,15 +362,6 @@
                     // Scroll to first invalid field
                     $('html, body').animate({
                         scrollTop: $('.is-invalid').first().offset().top - 100
-                    }, 500);
-                    return;
-                }
-
-                // Check if shipping service is selected
-                if (!$('#service').val()) {
-                    $('#service').addClass('is-invalid');
-                    $('html, body').animate({
-                        scrollTop: $('#service').offset().top - 100
                     }, 500);
                     return;
                 }

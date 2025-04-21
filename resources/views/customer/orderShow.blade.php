@@ -244,23 +244,32 @@
                         <h5 class="mb-0">Informasi Pengiriman</h5>
                     </div>
                     <div class="card-body">
-                        <h6>Kurir</h6>
-                        <p class="mb-3">{{ strtoupper($order->courier) }}</p>
 
-                        <h6>Layanan</h6>
-                        <p class="mb-3">{{ $order->service }}</p>
+                        @if ($order->courier != 'self_pickup')
+                            <h6>Kurir</h6>
+                            <p class="mb-3">{{ strtoupper($order->courier) }}</p>
+                            <h6>Layanan</h6>
+                            <p class="mb-3">{{ $order->service }}</p>
 
-                        <h6>Estimasi Sampai</h6>
-                        <p class="mb-3">{{ $order->estimated_delivery }} hari</p>
+                            <h6>Estimasi Sampai</h6>
+                            <p class="mb-3">{{ $order->estimated_delivery }} hari</p>
 
-                        <h6>No. Resi</h6>
-                        <p class="mb-3">{{ $order->tracking_number ?? 'Belum tersedia' }}</p>
+                            <h6>No. Resi</h6>
+                            <p class="mb-3">{{ $order->tracking_number ?? 'Belum tersedia' }}</p>
+                            <h6>Alamat Pengiriman</h6>
+                            <p class="mb-0">
+                                {{ $order->shipping_address }}<br>
+                                {{ $order->city }}, {{ $order->province }}
+                            </p>
+                        @else
+                            <h6>Metode Pengambilan</h6>
+                            <p class="mb-3">Ambil ditempat</p>
+                            <h6>Alamat Pengambilan</h6>
+                            <p class="mb-3"><a href="https://maps.app.goo.gl/NzkN37NgnJVb1NzE7" target="_blank">Jl.
+                                    Bubutan No.101A</a>
+                            </p>
+                        @endif
 
-                        <h6>Alamat Pengiriman</h6>
-                        <p class="mb-0">
-                            {{ $order->shipping_address }}<br>
-                            {{ $order->city }}, {{ $order->province }}
-                        </p>
                     </div>
                 </div>
 

@@ -20,50 +20,47 @@ class AuthController extends Controller
     }
 
     public function login(Request $request)
-    {   
+    {
         $this->validateLogin($request);
         try {
             $user = User::where('email', $request->email)->first();
             if (!$user) {
                 return response()->json(['error' => 'Email tidak terdaftar.'], 400);
-            } else if(!Hash::check($request->password, $user->password)) {
+            } else if (!Hash::check($request->password, $user->password)) {
                 return response()->json(['error' => 'Password salah.'], 400);
             } else {
                 $user = User::where('email', $request->email)->first();
                 Session::put('user', $user);
                 if ($user->role == 'user') {
                     return response()->json([
-                        'success' => "Login as $user->name Berhasil", 
+                        'success' => "Login as $user->name Berhasil",
                         'route' => route('home') // Assuming this route exists for users
                     ], 200);
-                } else if($user-> role =='admin'){    
+                } else if ($user->role == 'admin') {
                     return response()->json([
-                        'success' => "Login as Admin Berhasil", 
-                        'route' => route('admin.dashboard') 
+                        'success' => "Login as Admin Berhasil",
+                        'route' => route('admin.dashboard')
                     ], 200);
                 } else {
                     return response()->json([
-                        'success' => "Login as Owner Berhasil", 
-                        'route' => route('admin.dashboard') 
+                        'success' => "Login as Owner Berhasil",
+                        'route' => route('admin.dashboard')
                     ], 200);
                 }
-
             }
-            
-    
         } catch (\Exception $e) {
             // Log the error for debugging purposes
             return $this->sendErrorResponse($e->getMessage());
         }
     }
-    
+
     public function logout(Request $request)
     {
         Session::flush();
         $request->session()->invalidate();
-    
+
         $request->session()->regenerateToken();
-    
+
         return redirect('/');
     }
 
@@ -77,7 +74,7 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        try{
+        try {
 
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
@@ -85,7 +82,7 @@ class AuthController extends Controller
                 'password' => 'required|min:6|confirmed',
                 'password_confirmation' => 'required|min:6'
             ]);
-    
+
             // Pengecekan manual email sudah terdaftar sebelum validasi
             if (User::where('email', strtolower(trim($request->email)))->exists()) {
                 return response()->json([
@@ -124,27 +121,11 @@ class AuthController extends Controller
         ]);
     }
 
-    public function updateProfile(Request $request)
-    {
-        if (!$this->checkAdminAuth()) {
-            return redirect()->route('login'); // Ganti dengan rute login yang sesuai
-        }
-        $user = Auth::guard('users')->user();
-        \Debugbar::info('Profile update attempt', $request->all());
-        $user->update($request->validate([
-            'name' => 'required',
-            'phone' => 'nullable',
-            'address' => 'nullable'
-        ]));
-        
-        return back()->with('success', 'Profil berhasil diupdate');
-    }
-    
 
     private function checkAdminAuth()
     {
         $user = Session::get('user');
-        if ( $user != null && $user->role === 'admin') {
+        if ($user != null && $user->role === 'admin') {
             return true; // Pengguna sudah login sebagai admin
         }
         return false; // Pengguna belum login
@@ -160,7 +141,7 @@ class AuthController extends Controller
 
     private function sendLoginResponse($route)
     {
-        return ;
+        return;
     }
 
     private function sendFailedLoginResponse()
@@ -172,24 +153,4 @@ class AuthController extends Controller
     {
         return response()->json(['error' => $message], 400);
     }
-
-    public function dashboard()
-    {
-        Auth::shouldUse('users'); // Menentukan guard yang digunakan
-        $user = Auth::user(); // Mengambil data user
-        // ... existing code ...
-    }
-
-    public function products(Request $request)
-    {
-        $query = Product::query();
-        if ($request->has('search')) {
-            $search = $request->input('search');
-            $query->where('name', 'LIKE', "%{$search}%")
-                  ->orWhere('brand', 'LIKE', "%{$search}%");
-        }
-
-        $products = $query->simplePaginate(10);
-        return view('store', compact('products'));
-    }
-}   
+}

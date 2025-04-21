@@ -31,17 +31,32 @@ class PaymentController extends Controller
 
     public function processPayment(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required',
-            'email' => 'required|email',
-            'phone' => 'required',
-            'address' => 'required',
-            'province' => 'required',
-            'city' => 'required',
-            'courier' => 'required',
-            'service' => 'required',
-            'shipping_cost' => 'required|numeric'
-        ]);
+        $courier = $request->courier;
+
+        if ($courier != 'self_pickup') {
+            $validated = $request->validate([
+                'name' => 'required',
+                'email' => 'required|email',
+                'phone' => 'required',
+                'address' => 'required',
+                'province' => 'required',
+                'city' => 'required',
+                'courier' => 'required',
+                'service' => 'required',
+                'shipping_cost' => 'required|numeric'
+            ]);
+        } else {
+            $validated = $request->validate([
+                'name' => 'required',
+                'email' => 'required|email',
+                'phone' => 'required',
+                'address' => 'required',
+                'province' => 'required',
+                'city' => 'required',
+                'courier' => 'required',
+            ]);
+        }
+
 
         $cart = session()->get('cart', []);
         $user = session()->get('user');
