@@ -36,6 +36,7 @@ class ReportController extends Controller implements HasMiddleware
     // Daily Transactions Report
     public function dailyTransactions(Request $request)
     {
+        session()->put('menu', 'daily-transactions');
         $date = $request->input('date', now()->format('Y-m-d'));
 
         $transactions = Order::with(['items.products'])
@@ -59,6 +60,7 @@ class ReportController extends Controller implements HasMiddleware
     // Low Stock Report
     public function lowStock()
     {
+        session()->put('menu', 'low-stock');
         // Threshold for low stock (adjust as needed)
         $threshold = 10;
 
@@ -79,6 +81,7 @@ class ReportController extends Controller implements HasMiddleware
     // Monthly Profit Report
     public function monthlyProfit(Request $request)
     {
+        session()->put('menu', 'monthly-profit');
         $year = $request->input('year', date('Y'));
         $month = $request->input('month', date('m'));
 
@@ -120,6 +123,7 @@ class ReportController extends Controller implements HasMiddleware
     // Product Returns Report
     public function productReturns(Request $request)
     {
+        session()->put('menu', 'product-return');
         $returns = OrderRefund::with(['order', 'items.orderItem.product'])
             ->where('status', '!=', OrderRefund::STATUS_REJECTED)
             ->orderBy('created_at', 'desc')
@@ -138,6 +142,7 @@ class ReportController extends Controller implements HasMiddleware
     // Top Selling Products Report
     public function topProducts(Request $request)
     {
+        session()->put('menu', 'top-products');
         $limit = $request->input('limit', 10);
         $timeframe = $request->input('timeframe', 'month'); // day, week, month, year
 
@@ -176,6 +181,7 @@ class ReportController extends Controller implements HasMiddleware
     // Cancelled Orders Report
     public function cancelledOrders(Request $request)
     {
+        session()->put('menu', 'cancelled-orders');
         $timeframe = $request->input('timeframe', 'month'); // day, week, month, year
 
         $startDate = match ($timeframe) {
@@ -206,20 +212,12 @@ class ReportController extends Controller implements HasMiddleware
     // Top Rated Products Report
     public function topRated(Request $request)
     {
-        // Assuming you have a product_ratings table
-        // Adjust based on your actual rating system
+        session()->put('menu', 'top-rated');
         $limit = $request->input('limit', 5);
 
-        $topRated = Product::select([
-            'products.id',
-            'products.name',
-            'products.price',
-            DB::raw('AVG(product_ratings.rating) as average_rating'),
-            DB::raw('COUNT(product_ratings.id) as rating_count')
-        ])
-            ->leftJoin('product_ratings', 'products.id', '=', 'product_ratings.product_id')
-            ->groupBy('products.id', 'products.name', 'products.price')
-            ->having('rating_count', '>', 0)
+        $topRated = Product::withCount(['ratings as rating_count'])
+            ->withAvg('ratings as average_rating', 'rating')
+            ->whereHas('ratings')
             ->orderByDesc('average_rating')
             ->orderByDesc('rating_count')
             ->take($limit)

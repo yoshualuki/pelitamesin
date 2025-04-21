@@ -47,6 +47,13 @@ class Product extends Model
         return $this->hasMany(Rating::class, 'product_id');
     }
 
+    public function recentReviews()
+    {
+        return $this->ratings()
+            ->latest()
+            ->take(5); // Limit to 5 most recent reviews
+    }
+
     // Metode untuk memeriksa ketersediaan stok
     public function isAvailable()
     {
