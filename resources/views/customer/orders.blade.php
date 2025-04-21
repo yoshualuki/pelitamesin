@@ -155,10 +155,13 @@
                                             <i class="fas fa-eye me-1"></i> Detail
                                         </a>
                                         @if ($order->status === 'waiting_payment')
-                                            <a href="{{ route('checkout.process-payment', $order) }}"
-                                                class="btn btn-primary">
-                                                <i class="fas fa-credit-card me-1"></i> Bayar
-                                            </a>
+                                            <button class="btn btn-primary" id="payButton"
+                                                data-order-id="{{ $order->order_id }}">
+                                                <i
+                                                    class="fas
+                                                fa-credit-card me-1"></i>
+                                                Bayar
+                                            </button>
                                         @elseif ($order->status === 'shipped')
                                             <button class="btn btn-success mt-2" data-bs-toggle="modal"
                                                 data-bs-target="#confirmDeliveryModal"
@@ -528,9 +531,9 @@
                     <label>Rating (1-5):</label>
                     <div class="rating-stars mb-2">
                         ${[5,4,3,2,1].map(i => `
-                                                                                                            <input type="radio" id="star${i}_${idx}" name="ratings[${item.product_id}][rating]" value="${i}">
-                                                                                                            <label for="star${i}_${idx}"><i class="fas fa-star"></i></label>
-                                                                                                        `).join('')}
+                                                                                                                                                                                                                                    <input type="radio" id="star${i}_${idx}" name="ratings[${item.product_id}][rating]" value="${i}">
+                                                                                                                                                                                                                                    <label for="star${i}_${idx}"><i class="fas fa-star"></i></label>
+                                                                                                                                                                                                                                `).join('')}
                     </div>
                     <label>Ulasan:</label>
                     <textarea name="ratings[${item.product_id}][review]" class="form-control mb-2" rows="2"></textarea>
@@ -635,6 +638,55 @@
                     }
                 });
             });
+
+            // Handle "Bayar" button click
+            $('#payButton').on('click', function(e) {
+                e.preventDefault();
+                const $btn = $(this);
+                $btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm"></span> Memproses...');
+
+                // Get order id from route or data attribute
+                var orderId = $btn.data('order-id');
+
+                $.ajax({
+                    url: '/orders/' + orderId + '/get-snap-token',
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        window.snap.pay(response.snapToken, {
+                            onSuccess: function(result) {
+                                window.location.href = '/orders/' + orderId;
+                            },
+                            onPending: function(result) {
+                                window.location.href = '/orders/' + orderId;
+                            },
+                            onError: function(result) {
+                                showSwalError('Payment failed: ' + result
+                                    .status_message);
+                                $btn.prop('disabled', false).html(
+                                    '<i class="fas fa-credit-card me-1"></i> Bayar'
+                                );
+                            },
+                            onClose: function() {
+                                $btn.prop('disabled', false).html(
+                                    '<i class="fas fa-credit-card me-1"></i> Bayar'
+                                );
+                            }
+                        });
+                    },
+                    error: function(xhr) {
+                        showSwalError('Gagal memproses pembayaran: ' + (xhr.responseJSON
+                            ?.error || 'Unknown error'));
+                        $btn.prop('disabled', false).html(
+                            '<i class="fas fa-credit-card me-1"></i> Bayar');
+                    }
+                });
+                return false;
+            });
+
         });
 
         function formatFileSize(bytes) {

@@ -103,7 +103,7 @@ class OrderAdminController extends Controller implements HasMiddleware
 
         $order->update([
             'status' => 'processing',
-            'confirmed_at' => now()
+            'order_processed_at' => now()
         ]);
 
         return response()->json([
@@ -122,7 +122,8 @@ class OrderAdminController extends Controller implements HasMiddleware
 
             $order->update([
                 'tracking_number' => $request->shipping_number,
-                'status' => 'shipped'
+                'status' => 'shipped',
+                'order_sent_at' => now()
             ]);
 
             return response()->json([

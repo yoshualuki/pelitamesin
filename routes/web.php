@@ -60,6 +60,7 @@ Route::prefix('orders')->group(function () {
     Route::get('/', [OrderController::class, 'index'])->name('orders');
     Route::get('/{order}', [OrderController::class, 'show'])->name('orders.show');
     Route::put('/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
+    Route::post('/{order}/get-snap-token', [OrderController::class, 'getSnapToken'])->name('orders.get-snap-token');
     Route::post('/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.status.update');
     // routes/web.php
     Route::post('/{order_id}/confirm-delivery', [OrderController::class, 'confirmDelivery'])

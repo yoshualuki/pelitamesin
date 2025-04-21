@@ -53,6 +53,9 @@ class Order extends Model
         'paid_at' => 'datetime',
         'created_at' => 'datetime',
         'completed_at' => 'datetime',
+        'waiting_payment_at' => 'datetime',
+        'order_processed_at' => 'datetime',
+        'order_sent_at' => 'datetime',
         'updated_at' => 'datetime',
         // tambahkan field datetime lainnya jika ada
     ];

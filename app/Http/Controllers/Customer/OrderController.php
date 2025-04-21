@@ -8,9 +8,20 @@ use Illuminate\Http\Request;
 use App\Models\Product;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Midtrans\Config;
+use Midtrans\Snap;
 
 class OrderController extends Controller
 {
+    public function __construct()
+    {
+        Config::$serverKey = config('midtrans.server_key');
+        Config::$isProduction = config('midtrans.is_production');
+        Config::$isSanitized = true;
+        Config::$is3ds = true;
+    }
+
     public function index()
     {
         if (!session()->get('user')) {
@@ -174,5 +185,87 @@ class OrderController extends Controller
             DB::rollBack();
             return response()->json(['error' => 'Terjadi kesalahan saat mengkonfirmasi pesanan'], 500);
         }
+    }
+
+    public function getSnapToken($order_id)
+    {
+        $order = Order::where('order_id', $order_id)->firstOrFail();
+        // Validasi status order
+        if ($order->status !== 'waiting_payment') {
+            return response()->json(['error' => 'Tidak dapat mendapatkan token snap untuk pesanan dengan status ini'], 422);
+        }
+
+        $midtransUrl = config('midtrans.is_production') ? 'https://app.midtrans.com/snap/v1/' : 'https://api.sandbox.midtrans.com/v2/';
+
+        // cancel order first
+        $cancelResponse = Http::withHeaders([
+            'Authorization' => 'Basic ' . base64_encode(config('midtrans.server_key') . ':'),
+            'Content-Type' => 'application/json',
+        ])->post($midtransUrl . $order->order_id . '/cancel');
+
+        // Check if cancel was successful
+        if (!$cancelResponse->successful()) {
+            $errorMsg = 'Gagal membatalkan transaksi Midtrans.';
+            $json = $cancelResponse->json();
+            if (isset($json['status_message'])) {
+                $errorMsg .= ' ' . $json['status_message'];
+            }
+            return response()->json([
+                'error' => $errorMsg
+            ], 500);
+        }
+
+        $orderDetails = $order->items;
+        $itemDetails = [];
+        foreach ($orderDetails as $detail) {
+            $product = $detail->products;
+            $itemDetails[] = [
+                'id' => $product->id,
+                'price' => $product->price,
+                'quantity' => $detail->quantity,
+                'name' => $product->name
+            ];
+        }
+
+        // Tambahkan ongkir sebagai item
+        $itemDetails[] = [
+            'id' => 'SHIPPING',
+            'price' => $order->shipping_cost,
+            'quantity' => 1,
+            'name' => 'Ongkos Kirim (' . $order->courier . ' - ' . $order->service . ')'
+        ];
+
+        $params = [
+            'transaction_details' => [
+                'order_id' => $order->order_id,
+                'gross_amount' => $order->total,
+            ],
+            'item_details' => $itemDetails,
+            'customer_details' => [
+                'first_name' => $order->recipient_name,
+                'email' => $order->recipient_email,
+                'phone' => $order->recipient_phone,
+                'billing_address' => [
+                    'address' => $order->shipping_address,
+                    'city' => $order->city,
+                    'postal_code' => '',
+                ],
+                'shipping_address' => [
+                    'address' => $order->shipping_address,
+                    'city' => $order->city,
+                    'postal_code' => '',
+                ]
+            ],
+            'expiry' => [
+                'start_time' => date('Y-m-d H:i:s T'),
+                'unit' => 'hours',
+                'duration' => 24
+            ]
+        ];
+
+
+        // 4. Dapatkan Snap Token
+        $snapToken = Snap::getSnapToken($params);
+        return response()->json(['snap_token' => $snapToken]);
     }
 }

@@ -77,7 +77,8 @@ class PaymentController extends Controller
                 'shipping_address' => $request->address,
                 'province' => $request->province,
                 'city' => $request->city,
-                'estimated_delivery' => $request->estimated_delivery
+                'estimated_delivery' => $request->estimated_delivery,
+                'waiting_payment_at' => now()
             ]);
 
             // 2. Buat order details (TANPA mengurangi stok)
@@ -236,6 +237,7 @@ class PaymentController extends Controller
             case 'cancel':
             case 'expire':
                 $transaction->status = 'failed';
+                $transaction->cancelled_at = now();
                 break;
             case 'refund':
             case 'partial_refund':
