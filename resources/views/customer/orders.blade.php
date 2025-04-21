@@ -531,9 +531,9 @@
                     <label>Rating (1-5):</label>
                     <div class="rating-stars mb-2">
                         ${[5,4,3,2,1].map(i => `
-                                                                                                                                                                                                                                    <input type="radio" id="star${i}_${idx}" name="ratings[${item.product_id}][rating]" value="${i}">
-                                                                                                                                                                                                                                    <label for="star${i}_${idx}"><i class="fas fa-star"></i></label>
-                                                                                                                                                                                                                                `).join('')}
+                                                                                                                                                                                                                                        <input type="radio" id="star${i}_${idx}" name="ratings[${item.product_id}][rating]" value="${i}">
+                                                                                                                                                                                                                                        <label for="star${i}_${idx}"><i class="fas fa-star"></i></label>
+                                                                                                                                                                                                                                    `).join('')}
                     </div>
                     <label>Ulasan:</label>
                     <textarea name="ratings[${item.product_id}][review]" class="form-control mb-2" rows="2"></textarea>
@@ -656,7 +656,7 @@
                         _token: '{{ csrf_token() }}'
                     },
                     success: function(response) {
-                        window.snap.pay(response.snapToken, {
+                        window.snap.pay(response.snap_token, {
                             onSuccess: function(result) {
                                 window.location.href = '/orders/' + orderId;
                             },

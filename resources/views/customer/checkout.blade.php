@@ -162,6 +162,8 @@
             $('#email').val(`{{ session()->get('user')->email }}`);
             $('#phone').val(`{{ session()->get('user')->phone }}`);
             $('#address').val(`{{ session()->get('user')->address }}`);
+            $('#province').val(`{{ session()->get('user')->province }}`);
+            $('#city').val(`{{ session()->get('user')->city }}`);
 
 
             // Form validation
@@ -339,7 +341,9 @@
                     email: $('#email').val(),
                     phone: $('#phone').val(),
                     address: $('#address').val(),
+                    province_id: $('#province').val(),
                     province: $('#province option:selected').text(),
+                    city_id: $('#city').val(),
                     city: $('#city option:selected').text(),
                     courier: $('#courier').val(),
                     service: $('#service').val(),

@@ -60,6 +60,31 @@ class PaymentController extends Controller
         DB::beginTransaction();
 
         try {
+            $user = User::find($user->id);
+            if (!$user) {
+                DB::rollBack();
+                return response()->json(['error' => 'User not found'], 404);
+            }
+            // Update informasi user
+            if ($user->phone != $request->phone) {
+                $user->phone = $request->phone;
+            }
+            if ($user->address != $request->address) {
+                $user->address = $request->address;
+            }
+            if ($user->province != $request->province) {
+                $user->province = $request->province;
+                $user->province_id = $request->province_id;
+            }
+            if ($user->city != $request->city) {
+                $user->city = $request->city;
+                $user->city_id = $request->city_id;
+            }
+            $user->save();
+
+            // update session
+            session()->put('user', $user);
+
             // 1. Buat order
             $order = Order::create([
                 'order_id' => $orderId,
