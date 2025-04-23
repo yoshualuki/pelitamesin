@@ -61,21 +61,150 @@ class OrderAdminController extends Controller implements HasMiddleware
     public function showOrder($id)
     {
         $order = Order::with([
-            'customer',
-            'items',  // Changed from items.products to just items
+            'user',
+            'items'
         ])->findOrFail($id);
 
-        $lastStatus = [
+        // Status mapping
+        $statusLabels = [
             'waiting_payment' => 'Menunggu Pembayaran',
             'waiting_confirmation' => 'Menunggu Konfirmasi',
             'processing' => 'Diproses',
             'shipped' => 'Dikirim',
             'completed' => 'Selesai',
-            'cancelled' => 'Dibatalkan'
-        ][$order->status] ?? $order->status;
+            'cancelled' => 'Dibatalkan',
+            'partially_refunded' => 'Pengembalian Sebagian',
+            'refunded' => 'Dikembalikan'
+        ];
 
-        $orderItems = $order->items;
-        return view('admin.order.detail', compact('order', 'orderItems', 'lastStatus'));
+        // Build timeline from datetime fields
+        $statusHistory = [];
+
+        // Waiting Payment
+        if ($order->waiting_payment_at) {
+            $statusHistory[] = [
+                'status' => 'waiting_payment',
+                'label' => $statusLabels['waiting_payment'],
+                'time' => $order->waiting_payment_at->format('d M Y H:i'),
+                'icon' => $this->getStatusIcon('waiting_payment'),
+                'color' => $this->getStatusColor('waiting_payment'),
+                'is_active' => $order->status === 'waiting_payment'
+            ];
+        }
+
+        // Processing (order_processed_at)
+        if ($order->order_processed_at) {
+            $statusHistory[] = [
+                'status' => 'processing',
+                'label' => $statusLabels['processing'],
+                'time' => $order->order_processed_at->format('d M Y H:i'),
+                'icon' => $this->getStatusIcon('processing'),
+                'color' => $this->getStatusColor('processing'),
+                'is_active' => $order->status === 'processing'
+            ];
+        }
+
+        // Shipped (order_sent_at)
+        if ($order->order_sent_at) {
+            $statusHistory[] = [
+                'status' => 'shipped',
+                'label' => $statusLabels['shipped'],
+                'time' => $order->order_sent_at->format('d M Y H:i'),
+                'icon' => $this->getStatusIcon('shipped'),
+                'color' => $this->getStatusColor('shipped'),
+                'is_active' => $order->status === 'shipped'
+            ];
+        }
+
+        // Completed
+        if ($order->completed_at) {
+            $statusHistory[] = [
+                'status' => 'completed',
+                'label' => $statusLabels['completed'],
+                'time' => $order->completed_at->format('d M Y H:i'),
+                'icon' => $this->getStatusIcon('completed'),
+                'color' => $this->getStatusColor('completed'),
+                'is_active' => $order->status === 'completed'
+            ];
+        }
+
+        // Cancelled (using updated_at if no specific field)
+        if ($order->status === 'cancelled') {
+            $statusHistory[] = [
+                'status' => 'cancelled',
+                'label' => $statusLabels['cancelled'],
+                'time' => $order->updated_at->format('d M Y H:i'),
+                'icon' => $this->getStatusIcon('cancelled'),
+                'color' => $this->getStatusColor('cancelled'),
+                'is_active' => true
+            ];
+        }
+
+        // Sort timeline by datetime
+        usort($statusHistory, function ($a, $b) {
+            return strtotime($a['time']) - strtotime($b['time']);
+        });
+
+        // Mark current status as active if not already
+        foreach ($statusHistory as &$status) {
+            if ($status['status'] === $order->status) {
+                $status['is_active'] = true;
+            }
+        }
+
+        // Format data untuk view
+        return view('admin.order.detail', [
+            'order' => $order,
+            'statusHistory' => $statusHistory,
+            'lastStatus' => $statusLabels[$order->status] ?? $order->status,
+            'orderItems' => $order->items,
+            'paymentStatus' => $this->getPaymentStatus($order->payment_status ?? 'pending'),
+            'cancelReason' => $order->cancel_reason
+        ]);
+    }
+
+    private function getStatusIcon($status)
+    {
+        $icons = [
+            'waiting_payment' => 'fas fa-clock',
+            'waiting_confirmation' => 'fas fa-hourglass-half',
+            'processing' => 'fas fa-cog',
+            'shipped' => 'fas fa-truck',
+            'completed' => 'fas fa-check-circle',
+            'cancelled' => 'fas fa-times-circle',
+            'partially_refunded' => 'fas fa-exchange-alt',
+            'refunded' => 'fas fa-undo'
+        ];
+
+        return $icons[$status] ?? 'fas fa-info-circle';
+    }
+
+    private function getStatusColor($status)
+    {
+        $colors = [
+            'waiting_payment' => 'warning',
+            'waiting_confirmation' => 'secondary',
+            'processing' => 'primary',
+            'shipped' => 'info',
+            'completed' => 'success',
+            'cancelled' => 'danger',
+            'partially_refunded' => 'warning',
+            'refunded' => 'dark'
+        ];
+
+        return $colors[$status] ?? 'secondary';
+    }
+
+    private function getPaymentStatus($status)
+    {
+        return [
+            'pending' => ['label' => 'Menunggu Pembayaran', 'color' => 'warning'],
+            'paid' => ['label' => 'Lunas', 'color' => 'success'],
+            'expired' => ['label' => 'Kadaluarsa', 'color' => 'danger'],
+            'failed' => ['label' => 'Gagal', 'color' => 'danger'],
+            'refunded' => ['label' => 'Dikembalikan', 'color' => 'dark'],
+            'partially_refunded' => ['label' => 'Pengembalian Sebagian', 'color' => 'warning']
+        ][$status] ?? ['label' => 'Pending', 'color' => 'secondary'];
     }
 
     public function generateInvoice($id)

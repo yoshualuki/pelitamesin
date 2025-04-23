@@ -461,8 +461,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                        <a href="{{ route('admin.orders.invoice', $order->order_id) }}" type="button" target="_blank"
-                            class="btn btn-primary">
+                        <a href="/" type="button" target="_blank" id="cetak-invoice" class="btn btn-primary">
                             <i class="fas fa-print me-1"></i> Cetak Invoice
                         </a>
                     </div>
@@ -558,6 +557,7 @@
                 $(document).on('click', '.view-detail-btn', function() {
                     currentOrderId = $(this).data('id');
                     $('#modalOrderId').text(currentOrderId);
+                    $('#cetak-invoice').attr('href', `/admin/orders/${currentOrderId}/cetak-invoice`);
 
                     // Load order details via AJAX
                     $.ajax({
