@@ -40,6 +40,7 @@ class OrderController extends Controller
 
         // Get the requested status filter
         $status = request('status');
+        $user = session()->get('user');
 
         $orders = Order::with(['user', 'items.products'])
             ->when(request('status'), function ($query) {
@@ -53,6 +54,7 @@ class OrderController extends Controller
                         });
                 });
             })
+            ->where('user_id', $user->id)
             ->latest()
             ->paginate(5) // Reduce from 10 to 5 items per page
             ->appends(request()->query());
