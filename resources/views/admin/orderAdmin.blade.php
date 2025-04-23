@@ -149,7 +149,12 @@
                                                         @break
 
                                                         @case('shipped')
-                                                            <i class="fas fa-truck me-1"></i> Dikirim
+                                                            <i class="fas fa-truck me-1"></i>
+                                                            @if ($order->courier != 'self_pickup')
+                                                                Dikirim
+                                                            @else
+                                                                Dapat dipickup
+                                                            @endif
                                                         @break
 
                                                         @case('completed')
@@ -211,17 +216,24 @@
                                                         @endif
                                                         @if ($order->status == 'processing')
                                                             <li>
-                                                                <button class="dropdown-item shipping-btn"
-                                                                    data-id="{{ $order->order_id }}">
-                                                                    <i class="fas fa-truck me-2"></i> Input Resi
-                                                                </button>
+                                                                @if ($order->courier != 'self_pickup')
+                                                                    <button class="dropdown-item shipping-btn"
+                                                                        data-id="{{ $order->order_id }}">
+                                                                        <i class="fas fa-truck me-2"></i> Input Resi
+                                                                    </button>
+                                                                @else
+                                                                    <button class="dropdown-item pickup-btn"
+                                                                        data-id="{{ $order->order_id }}">
+                                                                        <i class="fas fa-truck me-2"></i> Konfirmasi Pickup
+                                                                    </button>
+                                                                @endif
                                                             </li>
                                                         @endif
-                                                        @if (in_array($order->status, ['shipped']))
+                                                        @if (in_array($order->status, ['shipped']) && $order->courier == 'self_pickup')
                                                             <li>
                                                                 <button class="dropdown-item complete-btn"
                                                                     data-id="{{ $order->order_id }}">
-                                                                    <i class="fas fa-check me-2"></i> Tandai Selesai
+                                                                    <i class="fas fa-check me-2"></i> Sudah dipickup
                                                                 </button>
                                                             </li>
                                                         @endif
@@ -283,6 +295,30 @@
                     <div class="modal-body py-4">
                         <p>Apakah Anda yakin ingin mengkonfirmasi pesanan ini?</p>
                         <p class="small text-muted">Pesanan akan diproses dan status akan berubah menjadi "Diproses".</p>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="button" id="confirmOrderBtn" class="btn btn-primary">
+                            <i class="fas fa-check-circle me-1"></i> Konfirmasi
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirm Pickup Order Modal -->
+        <div class="modal fade" id="confirmPickupModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title"><i class="fas fa-check-circle me-2"></i> Konfirmasi Pickup Pesanan</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body py-4">
+                        <p>Apakah Anda yakin ingin mengkonfirmasi pesanan ini bisa di pickup?</p>
+                        <p class="small text-muted">Pesanan akan diproses dan status akan berubah menjadi "Dapat di pickup".
+                        </p>
                     </div>
                     <div class="modal-footer border-0">
                         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
@@ -651,6 +687,64 @@
                                 title: 'Error',
                                 text: 'Gagal memuat informasi pengiriman'
                             });
+                        }
+                    });
+                });
+
+                // ... existing code ...
+                const confirmPickupModal = new bootstrap.Modal(document.getElementById('confirmPickupModal'));
+
+                $('.pickup-btn').click(function() {
+                    currentOrderId = $(this).data('id');
+                    confirmPickupModal.show();
+                });
+
+                // Handler for confirm pickup button in modal
+                $('#confirmPickupModal #confirmOrderBtn').off('click').on('click', function() {
+                    if (!currentOrderId) return;
+                    // Adjust the route as needed (assuming /orders/{orderid}/confirm-pickup)
+                    $.ajax({
+                        url: `/orders/${currentOrderId}/confirm-pickup`,
+                        type: 'POST',
+                        data: {
+                            _token: "{{ csrf_token() }}"
+                        },
+                        beforeSend: function() {
+                            $('#confirmPickupModal #confirmOrderBtn').prop('disabled', true).html(
+                                '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Memproses...'
+                            );
+                        },
+                        success: function(response) {
+                            // Handle JSON response
+                            if (response.message) {
+                                // Update status badge in table
+                                const row = $('#order-row-' + currentOrderId);
+                                row.find('.badge')
+                                    .removeClass('bg-primary')
+                                    .addClass('bg-info')
+                                    .html('<i class="fas fa-truck me-1"></i> Dikirim');
+                                // Remove pickup button from dropdown
+                                row.find('.pickup-btn').closest('li').remove();
+                                // Show success toast
+                                $('#successMessage').text(response.message);
+                                successToast.show();
+                            } else {
+                                $('#errorMessage').text(response.error || 'Terjadi kesalahan');
+                                errorToast.show();
+                            }
+                        },
+                        error: function(xhr) {
+                            const errorMessage = xhr.responseJSON?.error ||
+                                'Terjadi kesalahan server';
+                            $('#errorMessage').text(errorMessage);
+                            errorToast.show();
+                        },
+                        complete: function() {
+                            $('#confirmPickupModal #confirmOrderBtn').prop('disabled', false).html(
+                                '<i class="fas fa-check-circle me-1"></i> Konfirmasi'
+                            );
+                            confirmPickupModal.hide();
+                            currentOrderId = null;
                         }
                     });
                 });

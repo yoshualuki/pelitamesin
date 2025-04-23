@@ -35,7 +35,10 @@ class Order extends Model
         'status',
         'notes',
         'completed_at',
-        'cancel_reason'
+        'cancel_reason',
+        'order_sent_at',
+        'waiting_payment_at',
+        'order_processed_at',
     ];
 
     protected $primaryKey = 'order_id';
@@ -52,6 +55,10 @@ class Order extends Model
     protected $casts = [
         'paid_at' => 'datetime',
         'created_at' => 'datetime',
+        'completed_at' => 'datetime',
+        'waiting_payment_at' => 'datetime',
+        'order_processed_at' => 'datetime',
+        'order_sent_at' => 'datetime',
         'updated_at' => 'datetime',
         // tambahkan field datetime lainnya jika ada
     ];
@@ -95,11 +102,6 @@ class Order extends Model
         return $this->hasMany(OrderRefund::class, 'order_id', 'order_id');
     }
 
-    public function payment()
-    {
-        return $this->hasOne(Payment::class, 'order_id', 'order_id');
-    }
-
     public function cogs()
     {
         $cogs = 0;
@@ -109,12 +111,18 @@ class Order extends Model
         return $cogs;
     }
 
+    public function hasRating()
+    {
+        $rating = Rating::where('order_id', $this->order_id)->first();
+        return $rating ? true : false;
+    }
+
     // Helper methods
     public function canRequestRefund()
     {
         return $this->status === self::STATUS_COMPLETED &&
             $this->completed_at &&
-            $this->completed_at->diffInDays(now()) <= 14;
+            $this->completed_at->diffInDays(now()) <= 7;
     }
 
     public function getRefundableItems()

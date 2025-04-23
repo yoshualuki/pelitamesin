@@ -47,7 +47,7 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2>Detail Pesanan #{{ $order->order_id }}</h2>
             <span class="badge bg-{{ getStatusColor($order->status) }} fs-6">
-                {{ $statuses[$order->status] ?? $order->status }}
+                {{ $order->courier == 'self_pickup' && $order->status == 'shipped' ? 'Siap Di Pickup' : $statuses[$order->status] ?? $order->status }}
             </span>
         </div>
 
@@ -199,7 +199,9 @@
                                 <div class="timeline-marker"></div>
                                 <div class="timeline-content">
                                     <h6>Menunggu Pembayaran</h6>
-                                    <p class="text-muted small">{{ $order->created_at->format('d M Y H:i') }}</p>
+                                    <p class="text-muted small">
+                                        {{ $order->waiting_payment_at != null ? $order->waiting_payment_at->format('d M Y H:i') : '-' }}
+                                    </p>
                                 </div>
                             </div>
 
@@ -208,7 +210,11 @@
                                 <div class="timeline-content">
                                     <h6>Pesanan Diproses</h6>
                                     @if ($order->status == 'processing' || $order->status == 'shipped' || $order->status == 'completed')
-                                        <p class="text-muted small">{{ $order->updated_at->format('d M Y H:i') }}</p>
+                                        <p class="text-muted small">{{ $order->order_processed_at->format('d M Y H:i') }}
+                                        </p>
+                                    @else
+                                        <p class="text-muted small">-
+                                        </p>
                                     @endif
                                 </div>
                             </div>
@@ -218,7 +224,10 @@
                                 <div class="timeline-content">
                                     <h6>Pesanan Dikirim</h6>
                                     @if ($order->status == 'shipped' || $order->status == 'completed')
-                                        <p class="text-muted small">{{ $order->updated_at->format('d M Y H:i') }}</p>
+                                        <p class="text-muted small">{{ $order->order_sent_at->format('d M Y H:i') }}</p>
+                                    @else
+                                        <p class="text-muted small">-
+                                        </p>
                                     @endif
                                 </div>
                             </div>
@@ -228,7 +237,10 @@
                                 <div class="timeline-content">
                                     <h6>Pesanan Selesai</h6>
                                     @if ($order->status == 'completed')
-                                        <p class="text-muted small">{{ $order->updated_at->format('d M Y H:i') }}</p>
+                                        <p class="text-muted small">{{ $order->completed_at->format('d M Y H:i') }}</p>
+                                    @else
+                                        <p class="text-muted small">-
+                                        </p>
                                     @endif
                                 </div>
                             </div>
@@ -244,23 +256,32 @@
                         <h5 class="mb-0">Informasi Pengiriman</h5>
                     </div>
                     <div class="card-body">
-                        <h6>Kurir</h6>
-                        <p class="mb-3">{{ strtoupper($order->courier) }}</p>
 
-                        <h6>Layanan</h6>
-                        <p class="mb-3">{{ $order->service }}</p>
+                        @if ($order->courier != 'self_pickup')
+                            <h6>Kurir</h6>
+                            <p class="mb-3">{{ strtoupper($order->courier) }}</p>
+                            <h6>Layanan</h6>
+                            <p class="mb-3">{{ $order->service }}</p>
 
-                        <h6>Estimasi Sampai</h6>
-                        <p class="mb-3">{{ $order->estimated_delivery }} hari</p>
+                            <h6>Estimasi Sampai</h6>
+                            <p class="mb-3">{{ $order->estimated_delivery }} hari</p>
 
-                        <h6>No. Resi</h6>
-                        <p class="mb-3">{{ $order->tracking_number ?? 'Belum tersedia' }}</p>
+                            <h6>No. Resi</h6>
+                            <p class="mb-3">{{ $order->tracking_number ?? 'Belum tersedia' }}</p>
+                            <h6>Alamat Pengiriman</h6>
+                            <p class="mb-0">
+                                {{ $order->shipping_address }}<br>
+                                {{ $order->city }}, {{ $order->province }}
+                            </p>
+                        @else
+                            <h6>Metode Pengambilan</h6>
+                            <p class="mb-3">Ambil ditempat</p>
+                            <h6>Alamat Pengambilan</h6>
+                            <p class="mb-3"><a href="https://maps.app.goo.gl/NzkN37NgnJVb1NzE7" target="_blank">Jl.
+                                    Bubutan No.101A</a>
+                            </p>
+                        @endif
 
-                        <h6>Alamat Pengiriman</h6>
-                        <p class="mb-0">
-                            {{ $order->shipping_address }}<br>
-                            {{ $order->city }}, {{ $order->province }}
-                        </p>
                     </div>
                 </div>
 
@@ -287,11 +308,12 @@
                         @if ($order->status == 'shipped')
                             <button class="btn btn-success w-100 mb-2" data-bs-toggle="modal"
                                 data-bs-target="#confirmDeliveryModal">
-                                <i class="fas fa-check-circle me-2"></i> Konfirmasi Diterima
+                                <i class="fas fa-check-circle me-2"></i>
+                                {{ $order->courier == 'self_pickup' ? 'Konfirmasi Pickup' : 'Konfirmasi Diterima' }}
                             </button>
                         @endif
 
-                        @if ($order->status == 'completed' && $order->completed_at->diffInDays(now()) <= 7)
+                        @if ($order->status == 'shipped' && $order->order_sent_at != null && $order->order_sent_at->diffInDays(now()) >= 1)
                             <button class="btn btn-warning w-100 mb-2" data-bs-toggle="modal"
                                 data-bs-target="#returnRequestModal">
                                 <i class="fas fa-undo me-2"></i> Ajukan Retur
@@ -303,6 +325,18 @@
                                 data-bs-target="#cancelOrderModal">
                                 <i class="fas fa-times-circle me-2"></i> Batalkan Pesanan
                             </button>
+                        @endif
+
+                        @if ($order->status == 'completed')
+                            @php
+                                $hasReviewed = $order->hasRating();
+                            @endphp
+                            @if (!$hasReviewed)
+                                <button class="btn btn-warning w-100 mt-2" data-bs-toggle="modal"
+                                    data-bs-target="#confirmRatingModal" data-order-id="{{ $order->order_id }}">
+                                    <i class="fas fa-star me-2"></i>Review
+                                </button>
+                            @endif
                         @endif
 
                         <a href="{{ route('orders') }}" class="btn btn-outline-secondary w-100 mt-2">
@@ -364,7 +398,6 @@
     </div>
 
     <!-- Confirm Delivery Modal -->
-    <!-- Confirm Delivery Modal -->
     <div class="modal fade" id="confirmDeliveryModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -373,7 +406,7 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                         aria-label="Close"></button>
                 </div>
-                <form action="{{ route('orders.confirm-delivery', $order->order_id) }}" method="POST">
+                <form action="{{ route('orders.confirm-pickup-done', $order->order_id) }}" method="POST">
                     @csrf
                     <div class="modal-body">
                         <div class="alert alert-info">
@@ -453,9 +486,29 @@
             </div>
         </div>
     </div>
+
+    <div class="modal fade" id="confirmRatingModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Berikan Penilaian</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="deliveryRatingForm" enctype="multipart/form-data">
+                    <div class="modal-body">
+                        <input type="hidden" name="order_id" id="selected_order_id">
+                        <div id="products-rating-list"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Kirim Penilaian</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection
 
-@push('styles')
+@section('styles')
     <style>
         .timeline {
             position: relative;
@@ -496,14 +549,95 @@
         .timeline-content {
             padding-left: 0.5rem;
         }
+
+        .rating-stars {
+            display: flex;
+            flex-direction: row-reverse;
+            justify-content: start;
+            gap: 8px;
+        }
+
+        .rating-stars input {
+            display: none;
+        }
+
+        .rating-stars label {
+            font-size: 2rem;
+            color: #e4e4e4;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            transform-origin: center;
+        }
+
+        .rating-stars label:hover {
+            transform: scale(1.2);
+            color: #ffd700;
+        }
+
+        .rating-stars input:checked~label,
+        .rating-stars label:hover,
+        .rating-stars label:hover~label {
+            color: #ffd700;
+            animation: starBounce 0.5s ease;
+        }
+
+        @keyframes starBounce {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.3);
+            }
+
+            100% {
+                transform: scale(1.1);
+            }
+        }
+
+        .preview-item {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f8f9fa;
+        }
+
+        .preview-item img,
+        .preview-item video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .preview-item .remove-btn {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 24px;
+            height: 24px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .file-type-icon {
+            font-size: 2rem;
+            color: #6c757d;
+        }
     </style>
-@endpush
+@endsection
 
 @php
     function getStatusColor($status)
     {
         switch ($status) {
-            case 'paid':
+            case 'completed':
                 return 'success';
             case 'processing':
                 return 'info';
@@ -549,3 +683,240 @@
         </script>
     @endpush
 @endif
+
+@section('scripts')
+    <script>
+        $(document).ready(function() {
+            $('#confirmRatingModal').on('show.bs.modal', function(event) {
+                var button = $(event.relatedTarget);
+                var orderId = button.data('order-id');
+                $('#selected_order_id').val(orderId);
+                // Find the order's products
+                let order = @json($order);
+
+                let html = '';
+                if (order && order.items) {
+                    order.items.forEach(function(item, idx) {
+                        html += `
+                <div class="mb-4 border-bottom pb-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <img src="/${item.products.image ?? 'images/default-product.png'}" width="50" class="me-2 rounded">
+                        <strong>${item.products.name}</strong>
+                    </div>
+                    <label>Rating (1-5):</label>
+                    <div class="rating-stars mb-2">
+                        ${[5,4,3,2,1].map(i => `
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <input type="radio" id="star${i}_${idx}" name="ratings[${item.product_id}][rating]" value="${i}">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <label for="star${i}_${idx}"><i class="fas fa-star"></i></label>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                `).join('')}
+                    </div>
+                    <label>Ulasan:</label>
+                    <textarea name="ratings[${item.product_id}][review]" class="form-control mb-2" rows="2"></textarea>
+                    <label>Upload Foto/Video:</label>
+                    <input type="file" name="ratings[${item.product_id}][media][]" class="form-control mb-2 media-upload-input" 
+                        data-preview-container="previewContainer_${item.product_id}" multiple accept="image/*,video/*">
+                    <div class="preview-container mt-3 row g-2" id="previewContainer_${item.product_id}"></div>
+                </div>
+                `;
+                    });
+                }
+                $('#products-rating-list').html(html);
+
+                // Attach preview logic to each file input
+                $('.media-upload-input').each(function() {
+                    $(this).off('change').on('change', function(e) {
+                        const containerId = $(this).data('preview-container');
+                        const container = document.getElementById(containerId);
+                        const maxFiles = 5;
+                        const maxVideos = 1;
+                        const files = Array.from(this.files);
+                        let videoCount = 0;
+
+                        // Reset preview
+                        container.innerHTML = '';
+
+                        // Count existing videos
+                        files.forEach(file => {
+                            if (file.type.startsWith('video/')) videoCount++;
+                        });
+
+                        // Validation
+                        if (files.length > maxFiles) {
+                            alert(`Maksimal ${maxFiles} file diperbolehkan`);
+                            this.value = '';
+                            return;
+                        }
+
+                        if (videoCount > maxVideos) {
+                            alert(`Maksimal ${maxVideos} video diperbolehkan`);
+                            this.value = '';
+                            return;
+                        }
+
+                        // Create previews
+                        files.forEach((file, index) => {
+                            const reader = new FileReader();
+                            const previewItem = document.createElement('div');
+                            previewItem.className = 'col-auto preview-item';
+
+                            if (file.type.startsWith('image/')) {
+                                reader.onload = (e) => {
+                                    previewItem.innerHTML = `
+                                        <img src="${e.target.result}" alt="Preview">
+                                        <div class="file-info">${formatFileSize(file.size)}</div>
+                                    `;
+                                }
+                                reader.readAsDataURL(file);
+                            } else if (file.type.startsWith('video/')) {
+                                previewItem.innerHTML = `
+                                    <div class="d-flex flex-column align-items-center justify-content-center h-100">
+                                        <i class="fas fa-file-video file-type-icon"></i>
+                                        <small class="text-muted mt-1">${file.name}</small>
+                                        <div class="file-info">${formatFileSize(file.size)}</div>
+                                    </div>
+                                `;
+                            }
+
+                            container.appendChild(previewItem);
+                        });
+                    });
+                });
+            });
+
+            $('#confirmDeliveryModal').on('show.bs.modal', function(event) {
+                var button = $(event.relatedTarget);
+                var orderId = button.data('order-id');
+                $('#selected_order_id').val(orderId);
+                // Find the order's products
+                let order = ordersData[orderId];
+                let html = '';
+                if (order && order.items) {
+                    order.items.forEach(function(item, idx) {
+                        html += `
+                <div class="mb-4 border-bottom pb-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <img src="/${item.products.image ?? 'images/default-product.png'}" width="50" class="me-2 rounded">
+                        <strong>${item.products.name}</strong>
+                    </div>
+                    <label>Rating (1-5):</label>
+                    <div class="rating-stars mb-2">
+                        ${[5,4,3,2,1].map(i => `
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <input type="radio" id="star${i}_${idx}" name="ratings[${item.product_id}][rating]" value="${i}">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <label for="star${i}_${idx}"><i class="fas fa-star"></i></label>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                `).join('')}
+                    </div>
+                    <label>Ulasan:</label>
+                    <textarea name="ratings[${item.product_id}][review]" class="form-control mb-2" rows="2"></textarea>
+                    <label>Upload Foto/Video:</label>
+                    <input type="file" name="ratings[${item.product_id}][media][]" class="form-control mb-2 media-upload-input" 
+                        data-preview-container="previewContainer_${item.product_id}" multiple accept="image/*,video/*">
+                    <div class="preview-container mt-3 row g-2" id="previewContainer_${item.product_id}"></div>
+                </div>
+                `;
+                    });
+                }
+                $('#products-rating-list').html(html);
+
+                // Attach preview logic to each file input
+                $('.media-upload-input').each(function() {
+                    $(this).off('change').on('change', function(e) {
+                        const containerId = $(this).data('preview-container');
+                        const container = document.getElementById(containerId);
+                        const maxFiles = 5;
+                        const maxVideos = 1;
+                        const files = Array.from(this.files);
+                        let videoCount = 0;
+
+                        // Reset preview
+                        container.innerHTML = '';
+
+                        // Count existing videos
+                        files.forEach(file => {
+                            if (file.type.startsWith('video/')) videoCount++;
+                        });
+
+                        // Validation
+                        if (files.length > maxFiles) {
+                            alert(`Maksimal ${maxFiles} file diperbolehkan`);
+                            this.value = '';
+                            return;
+                        }
+
+                        if (videoCount > maxVideos) {
+                            alert(`Maksimal ${maxVideos} video diperbolehkan`);
+                            this.value = '';
+                            return;
+                        }
+
+                        // Create previews
+                        files.forEach((file, index) => {
+                            const reader = new FileReader();
+                            const previewItem = document.createElement('div');
+                            previewItem.className = 'col-auto preview-item';
+
+                            if (file.type.startsWith('image/')) {
+                                reader.onload = (e) => {
+                                    previewItem.innerHTML = `
+                                        <img src="${e.target.result}" alt="Preview">
+                                        <div class="file-info">${formatFileSize(file.size)}</div>
+                                    `;
+                                }
+                                reader.readAsDataURL(file);
+                            } else if (file.type.startsWith('video/')) {
+                                previewItem.innerHTML = `
+                                    <div class="d-flex flex-column align-items-center justify-content-center h-100">
+                                        <i class="fas fa-file-video file-type-icon"></i>
+                                        <small class="text-muted mt-1">${file.name}</small>
+                                        <div class="file-info">${formatFileSize(file.size)}</div>
+                                    </div>
+                                `;
+                            }
+
+                            container.appendChild(previewItem);
+                        });
+                    });
+                });
+            });
+
+            $('#deliveryRatingForm').submit(function(e) {
+                e.preventDefault();
+                let formData = new FormData(this);
+                let orderId = $('#selected_order_id').val();
+
+                // Add CSRF token to the FormData
+                formData.append('_token', '{{ csrf_token() }}');
+
+                $.ajax({
+                    url: '/orders/' + orderId + '/confirm-delivery',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        $('#confirmDeliveryModal').modal('hide');
+                        Swal.fire({
+                            title: 'Berhasil',
+                            text: response.message,
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            title: 'Gagal',
+                            text: 'Terjadi kesalahan saat mengirim penilaian',
+                        })
+                    }
+                });
+            });
+        })
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    </script>
+@endsection

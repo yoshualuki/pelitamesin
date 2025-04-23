@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="icon" href="{{ asset('images/logo.png') }}" type="image/x-icon">
     <style>
         :root {
             --sidebar-width: 250px;
@@ -220,6 +221,15 @@
 
                 <li class="sidebar-header">Management</li>
 
+                @if (session()->get('user')->role == 'owner')
+                    <li>
+                        <a href="{{ route('admin.useradmin.index') }}"
+                            class="sidebar-link @if (session()->get('menu') == 'admin') active @endif">
+                            <i class="sidebar-icon fas fa-user"></i>
+                            <span class="sidebar-text">Admin</span>
+                        </a>
+                    </li>
+                @endif
                 <li>
                     <a href="{{ route('admin.customer') }}"
                         class="sidebar-link @if (session()->get('menu') == 'users') active @endif">

@@ -33,12 +33,17 @@ class OrderDetail extends Model
 
     public function refunds()
     {
-        return $this->hasMany(OrderRefundItem::class, 'order_item_id');
+        return $this->hasMany(OrderRefundDetail::class, 'order_item_id');
     }
 
     public function getSubtotalAttribute()
     {
         return $this->price * $this->quantity;
+    }
+
+    public function hasReview()
+    {
+        return Rating::where('order_id', $this->order_id)->where('product_id', $this->product_id)->exists();
     }
 
     public function getRefundableQuantityAttribute()

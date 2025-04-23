@@ -36,157 +36,171 @@
                 <h1 class="h3 mb-1">Pesanan Saya</h1>
                 <p class="text-muted mb-0">Kelola dan pantau status pesanan Anda</p>
             </div>
-        </div>
 
-        <div class="filter-bar mb-4">
-            <div class="d-flex flex-column gap-2">
-                <h4 class="text-muted mb-2 fs-6">Filter berdasarkan status:</h4>
-                <div class="filter-nav d-flex align-items-center gap-2 overflow-x-auto pb-3">
-                    <a href="{{ route('orders') }}" class="filter-pill text-nowrap{{ !request('status') ? ' active' : '' }}">
-                        <i class="fas fa-layer-group me-2"></i>Semua
-                    </a>
-                    @foreach ($statuses as $key => $status)
-                        <a href="{{ route('orders', ['status' => $key]) }}"
-                            class="filter-pill text-nowrap{{ request('status') === $key ? ' active' : '' }}">
-                            <i class="fas {{ getStatusIcon($key) }} me-2"></i>
-                            {{ $status }}
-                        </a>
-                    @endforeach
-                </div>
+            <div class="col-md-4">
+                <form action="{{ route('orders') }}" method="GET">
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control" placeholder="Cari kode order/nama produk..."
+                            value="{{ request('search') }}">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
+    </div>
+
+    <div class="filter-bar mb-4">
+        <div class="d-flex flex-column gap-2">
+            <h4 class="text-muted mb-2 fs-6">Filter berdasarkan status:</h4>
+            <div class="filter-nav d-flex align-items-center gap-2 overflow-x-auto pb-3">
+                <a href="{{ route('orders') }}" class="filter-pill text-nowrap{{ !request('status') ? ' active' : '' }}">
+                    <i class="fas fa-layer-group me-2"></i>Semua
+                </a>
+                @foreach ($statuses as $key => $status)
+                    <a href="{{ route('orders', ['status' => $key]) }}"
+                        class="filter-pill text-nowrap{{ request('status') === $key ? ' active' : '' }}">
+                        <i class="fas {{ getStatusIcon($key) }} me-2"></i>
+                        {{ $status }}
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    </div>
 
 
-        <div class="row g-4">
-            @forelse($orders as $order)
-                <div class="col-12">
-                    <div class="card border-0 shadow-sm hover-shadow rounded-4 mb-2">
-                        <div class="card-body p-4">
-                            <div class="row align-items-center gy-3">
-                                <!-- Order Header -->
-                                <div class="col-lg-3 col-md-4">
-                                    <div class="d-flex flex-column gap-1">
-                                        <div class="d-flex align-items-center mb-1">
-                                            <i class="fas fa-shopping-bag text-primary me-2"></i>
-                                            <span class="fw-medium">#{{ $order->order_id }}</span>
-                                        </div>
-                                        <div class="text-muted small">
-                                            <i class="far fa-calendar me-1"></i>
-                                            {{ $order->created_at->translatedFormat('d F Y') }}
-                                            <span class="mx-1">•</span>
-                                            <i class="far fa-clock me-1"></i>
-                                            {{ $order->created_at->format('H:i') }}
-                                        </div>
+    <div class="row g-4">
+        @forelse($orders as $order)
+            <div class="col-12">
+                <div class="card border-0 shadow-sm hover-shadow rounded-4 mb-2">
+                    <div class="card-body p-4">
+                        <div class="row align-items-center gy-3">
+                            <!-- Order Header -->
+                            <div class="col-lg-3 col-md-4">
+                                <div class="d-flex flex-column gap-1">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="fas fa-shopping-bag text-primary me-2"></i>
+                                        <span class="fw-medium">#{{ $order->order_id }}</span>
+                                    </div>
+                                    <div class="text-muted small">
+                                        <i class="far fa-calendar me-1"></i>
+                                        {{ $order->created_at->translatedFormat('d F Y') }}
+                                        <span class="mx-1">•</span>
+                                        <i class="far fa-clock me-1"></i>
+                                        {{ $order->created_at->format('H:i') }}
                                     </div>
                                 </div>
-                                <!-- Order Items -->
-                                <div class="col-lg-6 col-md-5">
-                                    <div class="products-preview bg-light rounded-3 p-3">
-                                        @foreach ($order->items->take(2) as $item)
-                                            <div
-                                                class="product-item d-flex align-items-center {{ !$loop->last ? 'mb-2 pb-2 border-bottom' : '' }}">
-                                                <div class="flex-shrink-0">
-                                                    <img src="{{ asset($item->products->image ?? 'images/default-product.png') }}"
-                                                        class="rounded-2" width="60" height="60"
-                                                        style="object-fit: cover;">
-                                                </div>
-                                                <div class="flex-grow-1 ms-3">
-                                                    <h6 class="product-name mb-1">{{ $item->products->name }}</h6>
-                                                    <div class="d-flex align-items-center">
-                                                        <span class="badge bg-white text-dark border me-2">
-                                                            {{ $item->quantity }}x
-                                                        </span>
-                                                        <span class="text-muted small">
-                                                            Rp {{ number_format($item->price, 0, ',', '.') }}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div class="text-end ms-3">
-                                                    <span class="fw-medium text-primary">
-                                                        Rp {{ number_format($item->quantity * $item->price, 0, ',', '.') }}
+                            </div>
+                            <!-- Order Items -->
+                            <div class="col-lg-6 col-md-5">
+                                <div class="products-preview bg-light rounded-3 p-3">
+                                    @foreach ($order->items->take(2) as $item)
+                                        <div
+                                            class="product-item d-flex align-items-center {{ !$loop->last ? 'mb-2 pb-2 border-bottom' : '' }}">
+                                            <div class="flex-shrink-0">
+                                                <img src="{{ asset($item->products->image ?? 'images/default-product.png') }}"
+                                                    class="rounded-2" width="60" height="60"
+                                                    style="object-fit: cover;">
+                                            </div>
+                                            <div class="flex-grow-1 ms-3">
+                                                <h6 class="product-name mb-1">{{ $item->products->name }}</h6>
+                                                <div class="d-flex align-items-center">
+                                                    <span class="badge bg-white text-dark border me-2">
+                                                        {{ $item->quantity }}x
+                                                    </span>
+                                                    <span class="text-muted small">
+                                                        Rp {{ number_format($item->price, 0, ',', '.') }}
                                                     </span>
                                                 </div>
                                             </div>
-                                        @endforeach
-                                        @if ($order->items->count() > 2)
-                                            <div class="text-center mt-2 pt-2 border-top">
-                                                <a href="{{ route('orders.show', $order) }}" class="text-decoration-none">
-                                                    <span class="text-primary small fw-medium">
-                                                        <i class="fas fa-plus-circle me-1"></i>
-                                                        {{ $order->items->count() - 2 }} item lainnya
-                                                    </span>
-                                                </a>
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
-                                <!-- Order Actions -->
-                                <div class="col-lg-3 col-md-3">
-                                    <div class="d-flex flex-column h-100 justify-content-between">
-                                        <div>
-                                            <span
-                                                class="badge bg-{{ getStatusColor($order->status) }} rounded-pill d-block mb-2">
-                                                <i class="fas {{ getStatusIcon($order->status) }} me-1"></i>
-                                                {{ $statuses[$order->status] ?? $order->status }}
-                                            </span>
-                                            <div class="text-end">
-                                                <div class="text-muted small mb-1">Total Belanja</div>
-                                                <h5 class="mb-3 fw-bold text-primary">
-                                                    Rp
-                                                    {{ number_format($order->total_amount + $order->shipping_cost, 0, ',', '.') }}
-                                                </h5>
+                                            <div class="text-end ms-3">
+                                                <span class="fw-medium text-primary">
+                                                    Rp {{ number_format($item->quantity * $item->price, 0, ',', '.') }}
+                                                </span>
                                             </div>
                                         </div>
-                                        <div class="d-grid gap-2">
-                                            <a href="{{ route('orders.show', $order) }}" class="btn btn-outline-primary">
-                                                <i class="fas fa-eye me-1"></i> Detail
+                                    @endforeach
+                                    @if ($order->items->count() > 2)
+                                        <div class="text-center mt-2 pt-2 border-top">
+                                            <a href="{{ route('orders.show', $order) }}" class="text-decoration-none">
+                                                <span class="text-primary small fw-medium">
+                                                    <i class="fas fa-plus-circle me-1"></i>
+                                                    {{ $order->items->count() - 2 }} item lainnya
+                                                </span>
                                             </a>
-                                            @if ($order->status === 'waiting_payment')
-                                                <a href="{{ route('checkout.process-payment', $order) }}"
-                                                    class="btn btn-primary">
-                                                    <i class="fas fa-credit-card me-1"></i> Bayar
-                                                </a>
-                                            @elseif ($order->status === 'shipped')
-                                                <button class="btn btn-success mt-2" data-bs-toggle="modal"
-                                                    data-bs-target="#confirmDeliveryModal"
-                                                    data-order-id="{{ $order->id }}">
-                                                    <i class="fas fa-check-circle me-1"></i>Konfirmasi Barang Diterima
-                                                </button>
-                                            @endif
                                         </div>
+                                    @endif
+                                </div>
+                            </div>
+                            <!-- Order Actions -->
+                            <div class="col-lg-3 col-md-3">
+                                <div class="d-flex flex-column h-100 justify-content-between">
+                                    <div>
+                                        <span
+                                            class="badge bg-{{ getStatusColor($order->status) }} rounded-pill d-block mb-2">
+                                            <i class="fas {{ getStatusIcon($order->status) }} me-1"></i>
+                                            {{ $statuses[$order->status] ?? $order->status }}
+                                        </span>
+                                        <div class="text-end">
+                                            <div class="text-muted small mb-1">Total Belanja</div>
+                                            <h5 class="mb-3 fw-bold text-primary">
+                                                Rp
+                                                {{ number_format($order->total_amount + $order->shipping_cost, 0, ',', '.') }}
+                                            </h5>
+                                        </div>
+                                    </div>
+                                    <div class="d-grid gap-2">
+                                        <a href="{{ route('orders.show', $order) }}" class="btn btn-outline-primary">
+                                            <i class="fas fa-eye me-1"></i> Detail
+                                        </a>
+                                        @if ($order->status === 'waiting_payment')
+                                            <button class="btn btn-primary" id="payButton"
+                                                data-order-id="{{ $order->order_id }}">
+                                                <i
+                                                    class="fas
+                                                fa-credit-card me-1"></i>
+                                                Bayar
+                                            </button>
+                                        @elseif ($order->status === 'shipped')
+                                            <button class="btn btn-success mt-2" data-bs-toggle="modal"
+                                                data-bs-target="#confirmDeliveryModal"
+                                                data-order-id="{{ $order->order_id }}">
+                                                <i class="fas fa-check-circle me-1"></i>Konfirmasi Barang Diterima
+                                            </button>
+                                        @endif
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            @empty
-                <div class="col-12">
-                    <div class="card border-0 shadow-sm rounded-4">
-                        <div class="card-body text-center py-5">
-                            <img src="{{ asset('images/empty-history.svg') }}" class="img-fluid mb-4"
-                                style="max-height: 200px">
-                            <h4 class="mb-2">Belum Ada Pesanan</h4>
-                            <p class="text-muted mb-4">Mulai berbelanja dan temukan produk yang Anda butuhkan</p>
-                            <a href="{{ route('home') }}" class="btn btn-primary btn-lg px-4">
-                                <i class="fas fa-shopping-bag me-2"></i>Mulai Belanja
-                            </a>
-                        </div>
+            </div>
+        @empty
+            <div class="col-12">
+                <div class="card border-0 shadow-sm rounded-4">
+                    <div class="card-body text-center py-5">
+                        <img src="{{ asset('images/empty-history.svg') }}" class="img-fluid mb-4"
+                            style="max-height: 200px">
+                        <h4 class="mb-2">Belum Ada Pesanan</h4>
+                        <p class="text-muted mb-4">Mulai berbelanja dan temukan produk yang Anda butuhkan</p>
+                        <a href="{{ route('home') }}" class="btn btn-primary btn-lg px-4">
+                            <i class="fas fa-shopping-bag me-2"></i>Mulai Belanja
+                        </a>
                     </div>
                 </div>
-            @endforelse
-        </div>
-
-        @if ($orders->count() > 0)
-            <div class="d-flex justify-content-center mt-5">
-                {{ $orders->links() }}
             </div>
-        @endif
+        @endforelse
+    </div>
+
+    @if ($orders->count() > 0)
+        <div class="d-flex justify-content-center mt-5">
+            {{ $orders->links() }}
+        </div>
+    @endif
     </div>
 
 
-
-    {{-- Tambahkan modal di bawah kode --}}
     <div class="modal fade" id="confirmDeliveryModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -197,33 +211,7 @@
                 <form id="deliveryRatingForm" enctype="multipart/form-data">
                     <div class="modal-body">
                         <input type="hidden" name="order_id" id="selected_order_id">
-                        <div class="mb-4">
-                            <label class="form-label">Rating (1-5):</label>
-                            <div class="rating-stars">
-                                @for ($i = 5; $i >= 1; $i--)
-                                    <input type="radio" id="star{{ $i }}" name="rating"
-                                        value="{{ $i }}">
-                                    <label for="star{{ $i }}"><i class="fas fa-star"></i></label>
-                                @endfor
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Ulasan:</label>
-                            <textarea name="review" class="form-control" rows="3"></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Upload Foto/Video:</label>
-                            <div class="file-upload-wrapper">
-                                <input type="file" name="media[]" class="form-control" multiple
-                                    accept="image/*,video/*" data-max-files="5" data-max-videos="1" id="mediaUpload">
-
-                                <div class="preview-container mt-3 row g-2" id="previewContainer"></div>
-
-                                <small class="form-text text-muted">
-                                    Maksimal 5 file (1 video) • Ukuran maksimal per file: 5MB
-                                </small>
-                            </div>
-                        </div>
+                        <div id="products-rating-list"></div>
                     </div>
                     <div class="modal-footer">
                         <button type="submit" class="btn btn-primary">Kirim Penilaian</button>
@@ -524,10 +512,110 @@
 @section('scripts')
     <script>
         $(document).ready(function() {
+            let ordersData = @json($orders->keyBy('order_id'));
+            $('#confirmDeliveryModal').on('show.bs.modal', function(event) {
+                var button = $(event.relatedTarget);
+                var orderId = button.data('order-id');
+                $('#selected_order_id').val(orderId);
+                // Find the order's products
+                let order = ordersData[orderId];
+                let html = '';
+                if (order && order.items) {
+                    order.items.forEach(function(item, idx) {
+                        html += `
+                <div class="mb-4 border-bottom pb-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <img src="/${item.products.image ?? 'images/default-product.png'}" width="50" class="me-2 rounded">
+                        <strong>${item.products.name}</strong>
+                    </div>
+                    <label>Rating (1-5):</label>
+                    <div class="rating-stars mb-2">
+                        ${[5,4,3,2,1].map(i => `
+                                                                                                                                                                                                                                        <input type="radio" id="star${i}_${idx}" name="ratings[${item.product_id}][rating]" value="${i}">
+                                                                                                                                                                                                                                        <label for="star${i}_${idx}"><i class="fas fa-star"></i></label>
+                                                                                                                                                                                                                                    `).join('')}
+                    </div>
+                    <label>Ulasan:</label>
+                    <textarea name="ratings[${item.product_id}][review]" class="form-control mb-2" rows="2"></textarea>
+                    <label>Upload Foto/Video:</label>
+                    <input type="file" name="ratings[${item.product_id}][media][]" class="form-control mb-2 media-upload-input" 
+                        data-preview-container="previewContainer_${item.product_id}" multiple accept="image/*,video/*">
+                    <div class="preview-container mt-3 row g-2" id="previewContainer_${item.product_id}"></div>
+                </div>
+                `;
+                    });
+                }
+                $('#products-rating-list').html(html);
+
+                // Attach preview logic to each file input
+                $('.media-upload-input').each(function() {
+                    $(this).off('change').on('change', function(e) {
+                        const containerId = $(this).data('preview-container');
+                        const container = document.getElementById(containerId);
+                        const maxFiles = 5;
+                        const maxVideos = 1;
+                        const files = Array.from(this.files);
+                        let videoCount = 0;
+
+                        // Reset preview
+                        container.innerHTML = '';
+
+                        // Count existing videos
+                        files.forEach(file => {
+                            if (file.type.startsWith('video/')) videoCount++;
+                        });
+
+                        // Validation
+                        if (files.length > maxFiles) {
+                            alert(`Maksimal ${maxFiles} file diperbolehkan`);
+                            this.value = '';
+                            return;
+                        }
+
+                        if (videoCount > maxVideos) {
+                            alert(`Maksimal ${maxVideos} video diperbolehkan`);
+                            this.value = '';
+                            return;
+                        }
+
+                        // Create previews
+                        files.forEach((file, index) => {
+                            const reader = new FileReader();
+                            const previewItem = document.createElement('div');
+                            previewItem.className = 'col-auto preview-item';
+
+                            if (file.type.startsWith('image/')) {
+                                reader.onload = (e) => {
+                                    previewItem.innerHTML = `
+                                        <img src="${e.target.result}" alt="Preview">
+                                        <div class="file-info">${formatFileSize(file.size)}</div>
+                                    `;
+                                }
+                                reader.readAsDataURL(file);
+                            } else if (file.type.startsWith('video/')) {
+                                previewItem.innerHTML = `
+                                    <div class="d-flex flex-column align-items-center justify-content-center h-100">
+                                        <i class="fas fa-file-video file-type-icon"></i>
+                                        <small class="text-muted mt-1">${file.name}</small>
+                                        <div class="file-info">${formatFileSize(file.size)}</div>
+                                    </div>
+                                `;
+                            }
+
+                            container.appendChild(previewItem);
+                        });
+                    });
+                });
+            });
+            
             $('#deliveryRatingForm').submit(function(e) {
                 e.preventDefault();
                 let formData = new FormData(this);
                 let orderId = $('#selected_order_id').val();
+
+                // Add CSRF token to the FormData
+                formData.append('_token', '{{ csrf_token() }}');
+
                 $.ajax({
                     url: '/orders/' + orderId + '/confirm-delivery',
                     type: 'POST',
@@ -539,88 +627,68 @@
                         Swal.fire({
                             title: 'Berhasil',
                             text: response.message,
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            title: 'Gagal',
+                            text: 'Terjadi kesalahan saat mengirim penilaian',
                         })
                     }
-
-
                 });
             });
-        });
-        document.getElementById('mediaUpload').addEventListener('change', function(e) {
-            const container = document.getElementById('previewContainer');
-            const maxFiles = parseInt(this.dataset.maxFiles);
-            const maxVideos = parseInt(this.dataset.maxVideos);
-            const files = Array.from(this.files);
-            let videoCount = 0;
 
-            // Reset preview
-            container.innerHTML = '';
+            // Handle "Bayar" button click
+            $('#payButton').on('click', function(e) {
+                e.preventDefault();
+                const $btn = $(this);
+                $btn.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm"></span> Memproses...');
 
-            // Count existing videos
-            files.forEach(file => {
-                if (file.type.startsWith('video/')) videoCount++;
-            });
+                // Get order id from route or data attribute
+                var orderId = $btn.data('order-id');
 
-            // Validation
-            if (files.length > maxFiles) {
-                alert(`Maksimal ${maxFiles} file diperbolehkan`);
-                this.value = '';
-                return;
-            }
-
-            if (videoCount > maxVideos) {
-                alert(`Maksimal ${maxVideos} video diperbolehkan`);
-                this.value = '';
-                return;
-            }
-
-            // Create previews
-            files.forEach((file, index) => {
-                const reader = new FileReader();
-                const previewItem = document.createElement('div');
-                previewItem.className = 'col-auto preview-item';
-
-                const removeBtn = document.createElement('div');
-                removeBtn.className = 'remove-btn';
-                removeBtn.innerHTML = '×';
-                removeBtn.onclick = () => removeFile(index);
-
-                if (file.type.startsWith('image/')) {
-                    reader.onload = (e) => {
-                        previewItem.innerHTML = `
-                        <img src="${e.target.result}" alt="Preview">
-                        ${removeBtn.outerHTML}
-                        <div class="file-info">${formatFileSize(file.size)}</div>
-                    `;
+                $.ajax({
+                    url: '/orders/' + orderId + '/get-snap-token',
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        window.snap.pay(response.snap_token, {
+                            onSuccess: function(result) {
+                                window.location.href = '/orders/' + orderId;
+                            },
+                            onPending: function(result) {
+                                window.location.href = '/orders/' + orderId;
+                            },
+                            onError: function(result) {
+                                showSwalError('Payment failed: ' + result
+                                    .status_message);
+                                $btn.prop('disabled', false).html(
+                                    '<i class="fas fa-credit-card me-1"></i> Bayar'
+                                );
+                            },
+                            onClose: function() {
+                                $btn.prop('disabled', false).html(
+                                    '<i class="fas fa-credit-card me-1"></i> Bayar'
+                                );
+                            }
+                        });
+                    },
+                    error: function(xhr) {
+                        showSwalError('Gagal memproses pembayaran: ' + (xhr.responseJSON
+                            ?.error || 'Unknown error'));
+                        $btn.prop('disabled', false).html(
+                            '<i class="fas fa-credit-card me-1"></i> Bayar');
                     }
-                    reader.readAsDataURL(file);
-                } else if (file.type.startsWith('video/')) {
-                    previewItem.innerHTML = `
-                    <div class="d-flex flex-column align-items-center justify-content-center h-100">
-                        <i class="fas fa-file-video file-type-icon"></i>
-                        <small class="text-muted mt-1">${file.name}</small>
-                        ${removeBtn.outerHTML}
-                        <div class="file-info">${formatFileSize(file.size)}</div>
-                    </div>
-                `;
-                }
-
-                container.appendChild(previewItem);
+                });
+                return false;
             });
+
         });
-
-        function removeFile(index) {
-            const input = document.getElementById('mediaUpload');
-            const files = Array.from(input.files);
-            files.splice(index, 1);
-
-            const dataTransfer = new DataTransfer();
-            files.forEach(file => dataTransfer.items.add(file));
-            input.files = dataTransfer.files;
-
-            // Trigger change event to update preview
-            input.dispatchEvent(new Event('change'));
-        }
 
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';

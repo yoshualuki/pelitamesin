@@ -31,17 +31,32 @@ class PaymentController extends Controller
 
     public function processPayment(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required',
-            'email' => 'required|email',
-            'phone' => 'required',
-            'address' => 'required',
-            'province' => 'required',
-            'city' => 'required',
-            'courier' => 'required',
-            'service' => 'required',
-            'shipping_cost' => 'required|numeric'
-        ]);
+        $courier = $request->courier;
+
+        if ($courier != 'self_pickup') {
+            $validated = $request->validate([
+                'name' => 'required',
+                'email' => 'required|email',
+                'phone' => 'required',
+                'address' => 'required',
+                'province' => 'required',
+                'city' => 'required',
+                'courier' => 'required',
+                'service' => 'required',
+                'shipping_cost' => 'required|numeric'
+            ]);
+        } else {
+            $validated = $request->validate([
+                'name' => 'required',
+                'email' => 'required|email',
+                'phone' => 'required',
+                'address' => 'required',
+                'province' => 'required',
+                'city' => 'required',
+                'courier' => 'required',
+            ]);
+        }
+
 
         $cart = session()->get('cart', []);
         $user = session()->get('user');
@@ -60,6 +75,31 @@ class PaymentController extends Controller
         DB::beginTransaction();
 
         try {
+            $user = User::find($user->id);
+            if (!$user) {
+                DB::rollBack();
+                return response()->json(['error' => 'User not found'], 404);
+            }
+            // Update informasi user
+            if ($user->phone != $request->phone) {
+                $user->phone = $request->phone;
+            }
+            if ($user->address != $request->address) {
+                $user->address = $request->address;
+            }
+            if ($user->province != $request->province) {
+                $user->province = $request->province;
+                $user->province_id = $request->province_id;
+            }
+            if ($user->city != $request->city) {
+                $user->city = $request->city;
+                $user->city_id = $request->city_id;
+            }
+            $user->save();
+
+            // update session
+            session()->put('user', $user);
+
             // 1. Buat order
             $order = Order::create([
                 'order_id' => $orderId,
@@ -77,7 +117,8 @@ class PaymentController extends Controller
                 'shipping_address' => $request->address,
                 'province' => $request->province,
                 'city' => $request->city,
-                'estimated_delivery' => $request->estimated_delivery
+                'estimated_delivery' => $request->estimated_delivery,
+                'waiting_payment_at' => now()
             ]);
 
             // 2. Buat order details (TANPA mengurangi stok)
@@ -236,6 +277,7 @@ class PaymentController extends Controller
             case 'cancel':
             case 'expire':
                 $transaction->status = 'failed';
+                $transaction->cancelled_at = now();
                 break;
             case 'refund':
             case 'partial_refund':

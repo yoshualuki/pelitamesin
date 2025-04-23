@@ -60,11 +60,15 @@ Route::prefix('orders')->group(function () {
     Route::get('/', [OrderController::class, 'index'])->name('orders');
     Route::get('/{order}', [OrderController::class, 'show'])->name('orders.show');
     Route::put('/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
+    Route::post('/{order}/get-snap-token', [OrderController::class, 'getSnapToken'])->name('orders.get-snap-token');
     Route::post('/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.status.update');
-    // routes/web.php
     Route::post('/{order_id}/confirm-delivery', [OrderController::class, 'confirmDelivery'])
         ->name('orders.confirm-delivery');
-    Route::post('/submit-rating', [OrderController::class, 'submitRating'])->name('orders.submit-rating');
+    Route::post('/{order_id}/confirm-pickup-done', [OrderController::class, 'confirmPickupDone'])
+        ->name('orders.confirm-pickup-done');
+    Route::post('/{order_id}/confirm-pickup', [OrderController::class, 'confirmPickup'])
+        ->name('orders.confirm-pickup');
+    Route::post('/{order}/submit-review', [OrderController::class, 'submitReview'])->name('orders.submit-review');
 });
 
 Route::post('/midtrans/webhook', [PaymentController::class, 'handleWebhook']);
@@ -114,6 +118,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/customer/edit', [AdminController::class, 'customer'])->name('customer.edit');
     Route::get('/customer/store', [AdminController::class, 'customer'])->name('customer.store');
     Route::get('/customer/destroy', [AdminController::class, 'customer'])->name('customer.destroy');
+
+    // user admin management
+    Route::get('/useradmin', [AdminUserController::class, 'adminIndex'])->name('useradmin.index');
+    Route::post('/useradmin', [AdminUserController::class, 'storeAdmin'])->name('useradmin.store');
+    Route::post('/useradmin/{id}/toggle', [AdminUserController::class, 'toggleAdminStatus'])->name('useradmin.toggle');
 
 
     // Product Routes
