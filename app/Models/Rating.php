@@ -17,10 +17,6 @@ class Rating extends Model
     {
         return $this->belongsTo(Order::class, 'order_id', 'order_id');
     }
-    public function user()
-    {
-        return $this->order->user();
-    }
 
     public function media()
     {

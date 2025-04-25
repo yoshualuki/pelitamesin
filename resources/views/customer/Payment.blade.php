@@ -1,4 +1,4 @@
-<div class="container mt-5">
+{{-- <div class="container mt-5">
     <h1>Payment</h1>
     <form action="{{ route('payment.process') }}" method="POST">
         @csrf
@@ -35,4 +35,4 @@
 
 
 @endsection
-
+ --}}

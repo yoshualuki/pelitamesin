@@ -209,24 +209,78 @@ class ReportController extends Controller implements HasMiddleware
         ]);
     }
 
-    // Top Rated Products Report
+    // ReportController.php
     public function topRated(Request $request)
     {
         session()->put('menu', 'top-rated');
-        $limit = $request->input('limit', 5);
+        $limit = $request->input('limit', 10); // Default to 10 products
+        $timeRange = $request->input('time_range', 'month'); // month, quarter, year, all
 
-        $topRated = Product::withCount(['ratings as rating_count'])
-            ->withAvg('ratings as average_rating', 'rating')
-            ->whereHas('ratings')
-            ->orderByDesc('average_rating')
-            ->orderByDesc('rating_count')
+        $topRated = Product::select()
+            // ->withCount(['ratings as rating_count'])
+            // ->withAvg('ratings', 'rating')
+            // ->withCount(['orderItems as sales_count'])
+            // ->when($timeRange !== 'all', function ($query) use ($timeRange) {
+            //     $this->applyTimeRange($query, $timeRange);
+            // })
+            // ->orderBy('sales_count', 'desc')
+            ->orderBy('average_rating', 'desc')
+            ->orderBy('rating_count', 'desc')
             ->take($limit)
             ->get();
+        app('debugbar')->info($topRated->toArray());
+        // Calculate average rating and rating count
+
 
         return view('admin.reports.top-rated', [
             'topRated' => $topRated,
-            'limit' => $limit
+            'limit' => $limit,
+            'timeRange' => $timeRange
         ]);
+    }
+
+    public function productReviews(Product $product, Request $request)
+    {
+        $ratingFilter = $request->input('rating');
+
+        $reviews = $product->ratings()
+            ->with(['user', 'images'])
+            ->when($ratingFilter, function ($query) use ($ratingFilter) {
+                $query->where('rating', $ratingFilter);
+            })
+            ->latest()
+            ->paginate(10);
+
+        return view('admin.reports.product-reviews', [
+            'product' => $product,
+            'reviews' => $reviews,
+            'ratingFilter' => $ratingFilter
+        ]);
+    }
+
+    protected function applyTimeRange($query, $timeRange)
+    {
+        $now = now();
+
+        switch ($timeRange) {
+            case 'month':
+                $query->whereHas('ratings', function ($q) use ($now) {
+                    $q->whereBetween('created_at', [$now->startOfMonth(), $now->endOfMonth()]);
+                });
+                break;
+
+            case 'quarter':
+                $query->whereHas('ratings', function ($q) use ($now) {
+                    $q->whereBetween('created_at', [$now->subMonths(3), $now]);
+                });
+                break;
+
+            case 'year':
+                $query->whereHas('ratings', function ($q) use ($now) {
+                    $q->whereBetween('created_at', [$now->startOfYear(), $now->endOfYear()]);
+                });
+                break;
+        }
     }
 
     // Unsold Products Report
