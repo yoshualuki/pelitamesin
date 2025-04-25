@@ -286,6 +286,7 @@ class ReportController extends Controller implements HasMiddleware
     // Unsold Products Report
     public function unsoldProducts(Request $request)
     {
+        session()->put('menu', 'unsold-products');
         $timeframe = $request->input('timeframe', 'month'); // day, week, month, year
 
         $startDate = match ($timeframe) {
