@@ -217,13 +217,6 @@ class ReportController extends Controller implements HasMiddleware
         $timeRange = $request->input('time_range', 'month'); // month, quarter, year, all
 
         $topRated = Product::select()
-            // ->withCount(['ratings as rating_count'])
-            // ->withAvg('ratings', 'rating')
-            // ->withCount(['orderItems as sales_count'])
-            // ->when($timeRange !== 'all', function ($query) use ($timeRange) {
-            //     $this->applyTimeRange($query, $timeRange);
-            // })
-            // ->orderBy('sales_count', 'desc')
             ->orderBy('average_rating', 'desc')
             ->orderBy('rating_count', 'desc')
             ->take($limit)
@@ -316,6 +309,7 @@ class ReportController extends Controller implements HasMiddleware
     // Payment Methods Report
     public function paymentMethods(Request $request)
     {
+        session()->put('menu', 'payment-methods');
         $timeframe = $request->input('timeframe', 'month'); // day, week, month, year
 
         $startDate = match ($timeframe) {
@@ -355,10 +349,16 @@ class ReportController extends Controller implements HasMiddleware
             'products.id',
             'products.name',
             'products.price',
-            DB::raw('AVG(product_ratings.rating) as average_rating'),
-            DB::raw('COUNT(product_ratings.id) as rating_count')
+            'products.average_rating',
+            'products.rating_count',
+            'products.image',
+            DB::raw('SUM(CASE WHEN ratings.rating = 5 THEN 1 ELSE 0 END) as rating_5'),
+            DB::raw('SUM(CASE WHEN ratings.rating = 4 THEN 1 ELSE 0 END) as rating_4'),
+            DB::raw('SUM(CASE WHEN ratings.rating = 3 THEN 1 ELSE 0 END) as rating_3'),
+            DB::raw('SUM(CASE WHEN ratings.rating = 2 THEN 1 ELSE 0 END) as rating_2'),
+            DB::raw('SUM(CASE WHEN ratings.rating = 1 THEN 1 ELSE 0 END) as rating_1')
         ])
-            ->leftJoin('product_ratings', 'products.id', '=', 'product_ratings.product_id')
+            ->leftJoin('ratings', 'products.id', '=', 'ratings.product_id')
             ->groupBy('products.id', 'products.name', 'products.price')
             ->having('average_rating', '<', $threshold)
             ->having('rating_count', '>', 0)
@@ -367,7 +367,7 @@ class ReportController extends Controller implements HasMiddleware
             ->take($limit)
             ->get();
 
-        return view('admin.reports.low-rated', [
+        return view('admin.reports.low-rated-product', [
             'lowRated' => $lowRated,
             'threshold' => $threshold,
             'limit' => $limit

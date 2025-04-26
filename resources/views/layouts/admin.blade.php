@@ -272,7 +272,7 @@
                         <a href="{{ route('admin.reports.daily-transactions') }}"
                             class="sidebar-link @if (session()->get('menu') == 'daily-transactions') active @endif">
                             <i class="sidebar-icon fas fa-calendar-day"></i>
-                            <span class="sidebar-text">Daily Transactions</span>
+                            <span class="sidebar-text">Transaksi Harian</span>
                         </a>
                     </li>
 
@@ -280,7 +280,7 @@
                         <a href="{{ route('admin.reports.low-stock') }}"
                             class="sidebar-link @if (session()->get('menu') == 'low-stock') active @endif">
                             <i class="sidebar-icon fas fa-exclamation-triangle"></i>
-                            <span class="sidebar-text">Low Stock Alert</span>
+                            <span class="sidebar-text">Stok Akan Habis</span>
 
                         </a>
                     </li>
@@ -289,7 +289,7 @@
                         <a href="{{ route('admin.reports.monthly-profit') }}"
                             class="sidebar-link @if (session()->get('menu') == 'monthly-profit') active @endif">
                             <i class="sidebar-icon fas fa-chart-line"></i>
-                            <span class="sidebar-text">Monthly Net Profit</span>
+                            <span class="sidebar-text">Keuntungan Bulanan</span>
                         </a>
                     </li>
 
@@ -297,7 +297,7 @@
                         <a href="{{ route('admin.reports.product-returns') }}"
                             class="sidebar-link @if (session()->get('menu') == 'product-returns') active @endif">
                             <i class="sidebar-icon fas fa-undo"></i>
-                            <span class="sidebar-text">Product Returns</span>
+                            <span class="sidebar-text">Product dikembalikan</span>
                         </a>
                     </li>
 
@@ -305,7 +305,7 @@
                         <a href="{{ route('admin.reports.top-products') }}"
                             class="sidebar-link @if (session()->get('menu') == 'top-products') active @endif">
                             <i class="sidebar-icon fas fa-star"></i>
-                            <span class="sidebar-text">Top Selling Products</span>
+                            <span class="sidebar-text">Produk Paling Laku</span>
                         </a>
                     </li>
 
@@ -313,7 +313,7 @@
                         <a href="{{ route('admin.reports.cancelled-orders') }}"
                             class="sidebar-link @if (session()->get('menu') == 'cancelled-orders') active @endif">
                             <i class="sidebar-icon fas fa-times-circle"></i>
-                            <span class="sidebar-text">Cancelled Orders</span>
+                            <span class="sidebar-text">Order dibatalkan</span>
                         </a>
                     </li>
 
@@ -321,7 +321,7 @@
                         <a href="{{ route('admin.reports.top-rated') }}"
                             class="sidebar-link @if (session()->get('menu') == 'top-rated') active @endif">
                             <i class="sidebar-icon fas fa-thumbs-up"></i>
-                            <span class="sidebar-text">Top Rated Products</span>
+                            <span class="sidebar-text">Produk Rating Terbaik</span>
                         </a>
                     </li>
 
@@ -329,7 +329,7 @@
                         <a href="{{ route('admin.reports.unsold-products') }}"
                             class="sidebar-link @if (session()->get('menu') == 'unsold-products') active @endif">
                             <i class="sidebar-icon fas fa-ban"></i>
-                            <span class="sidebar-text">Unsold Products</span>
+                            <span class="sidebar-text">Produk Tidak Laku</span>
                         </a>
                     </li>
 
@@ -337,7 +337,7 @@
                         <a href="{{ route('admin.reports.payment-methods') }}"
                             class="sidebar-link @if (session()->get('menu') == 'payment-methods') active @endif">
                             <i class="sidebar-icon fas fa-credit-card"></i>
-                            <span class="sidebar-text">Payment Methods</span>
+                            <span class="sidebar-text">Metode Pembayaran</span>
                         </a>
                     </li>
 
@@ -345,7 +345,7 @@
                         <a href="{{ route('admin.reports.low-rated') }}"
                             class="sidebar-link @if (session()->get('menu') == 'low-rated') active @endif">
                             <i class="sidebar-icon fas fa-thumbs-down"></i>
-                            <span class="sidebar-text">Low Rated Products</span>
+                            <span class="sidebar-text">Produk Rating Terendah</span>
                         </a>
                     </li>
                     <!-- Add other report links here -->
