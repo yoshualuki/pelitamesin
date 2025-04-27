@@ -94,6 +94,38 @@
                             </div>
                             <!-- Order Items -->
                             <div class="col-lg-6 col-md-5">
+
+                                @if ($order->refunds && $order->refunds->status)
+                                    <div class="alert alert-info py-1 px-2 mb-2 d-inline-flex align-items-center"
+                                        style="font-size: 0.85em;">
+                                        <i class="fas fa-undo me-2"></i>
+                                        <div>
+                                            Status Refund:
+                                            @switch($order->refunds->status)
+                                                @case('pending')
+                                                    Menunggu Persetujuan Refund
+                                                @break
+
+                                                @case('approved')
+                                                    Refund Disetujui, Akan Otomatis di transfer dalam maksimal 30 hari kerja
+                                                @break
+
+                                                @case('rejected')
+                                                    Refund Ditolak
+                                                    @if ($order->refunds->admin_notes)
+                                                        <div class="text-danger mt-1" style="font-size:0.9em;">
+                                                            <i class="fas fa-info-circle me-1"></i>
+                                                            {{ $order->refunds->admin_notes }}
+                                                        </div>
+                                                    @endif
+                                                @break
+
+                                                @default
+                                                    {{ ucfirst($order->refunds->status) }}
+                                            @endswitch
+                                        </div>
+                                    </div>
+                                @endif
                                 <div class="products-preview bg-light rounded-3 p-3">
                                     @foreach ($order->items->take(2) as $item)
                                         <div
@@ -176,353 +208,353 @@
                     </div>
                 </div>
             </div>
-        @empty
-            <div class="col-12">
-                <div class="card border-0 shadow-sm rounded-4">
-                    <div class="card-body text-center py-5">
-                        <img src="{{ asset('images/empty-history.svg') }}" class="img-fluid mb-4"
-                            style="max-height: 200px">
-                        <h4 class="mb-2">Belum Ada Pesanan</h4>
-                        <p class="text-muted mb-4">Mulai berbelanja dan temukan produk yang Anda butuhkan</p>
-                        <a href="{{ route('home') }}" class="btn btn-primary btn-lg px-4">
-                            <i class="fas fa-shopping-bag me-2"></i>Mulai Belanja
-                        </a>
+            @empty
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm rounded-4">
+                        <div class="card-body text-center py-5">
+                            <img src="{{ asset('images/empty-history.svg') }}" class="img-fluid mb-4"
+                                style="max-height: 200px">
+                            <h4 class="mb-2">Belum Ada Pesanan</h4>
+                            <p class="text-muted mb-4">Mulai berbelanja dan temukan produk yang Anda butuhkan</p>
+                            <a href="{{ route('home') }}" class="btn btn-primary btn-lg px-4">
+                                <i class="fas fa-shopping-bag me-2"></i>Mulai Belanja
+                            </a>
+                        </div>
                     </div>
                 </div>
-            </div>
-        @endforelse
-    </div>
-
-    @if ($orders->count() > 0)
-        <div class="d-flex justify-content-center mt-5">
-            {{ $orders->links() }}
+            @endforelse
         </div>
-    @endif
-    </div>
+
+        @if ($orders->count() > 0)
+            <div class="d-flex justify-content-center mt-5">
+                {{ $orders->links() }}
+            </div>
+        @endif
+        </div>
 
 
-    <div class="modal fade" id="confirmDeliveryModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Berikan Penilaian</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="modal fade" id="confirmDeliveryModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Berikan Penilaian</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="deliveryRatingForm" enctype="multipart/form-data">
+                        <div class="modal-body">
+                            <input type="hidden" name="order_id" id="selected_order_id">
+                            <div id="products-rating-list"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-primary">Kirim Penilaian</button>
+                        </div>
+                    </form>
                 </div>
-                <form id="deliveryRatingForm" enctype="multipart/form-data">
-                    <div class="modal-body">
-                        <input type="hidden" name="order_id" id="selected_order_id">
-                        <div id="products-rating-list"></div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">Kirim Penilaian</button>
-                    </div>
-                </form>
             </div>
         </div>
-    </div>
-@endsection
+    @endsection
 
-@section('styles')
-    <style>
-        .hover-shadow {
-            transition: all 0.3s ease;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .hover-shadow:hover {
-            box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.08) !important;
-        }
-
-        .product-name {
-            display: -webkit-box;
-            -webkit-line-clamp: 1;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            font-size: 0.875rem;
-            line-height: 1.5;
-            margin: 0;
-        }
-
-        .products-preview {
-            background: #f8f9fa;
-        }
-
-        .product-item:hover {
-            background: rgba(255, 255, 255, 0.5);
-        }
-
-        .badge {
-            font-weight: 500;
-            padding: 0.5rem 1rem;
-        }
-
-        .dropdown-item.active {
-            background-color: #e9ecef;
-            color: var(--bs-primary);
-        }
-
-        @media (max-width: 992px) {
-            .product-item {
-                padding: 0.5rem 0;
+    @section('styles')
+        <style>
+            .hover-shadow {
+                transition: all 0.3s ease;
+                border: 1px solid rgba(0, 0, 0, 0.05);
             }
-        }
 
-        .filter-chips {
-            overflow-x: auto;
-            padding: 4px;
-            background: #000000;
-            -webkit-overflow-scrolling: touch;
-        }
+            .hover-shadow:hover {
+                box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.08) !important;
+            }
 
-        .filter-chips a {
-            color: #fff;
-        }
+            .product-name {
+                display: -webkit-box;
+                -webkit-line-clamp: 1;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+                font-size: 0.875rem;
+                line-height: 1.5;
+                margin: 0;
+            }
 
-        .chip {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.5rem 1rem;
-            border-radius: 100px;
-            background: #f8f9fa;
-            color: #6c757d;
-            text-decoration: none;
-            font-size: 0.875rem;
-            transition: all 0.2s ease;
-            border: 1px solid #dee2e6;
-        }
+            .products-preview {
+                background: #f8f9fa;
+            }
 
-        .chip:hover {
-            background: #e9ecef;
-            color: var(--bs-primary);
-            border-color: #ced4da;
-        }
+            .product-item:hover {
+                background: rgba(255, 255, 255, 0.5);
+            }
 
-        .chip.active {
-            background: var(--bs-primary);
-            color: #fff;
-            border-color: var(--bs-primary);
-        }
+            .badge {
+                font-weight: 500;
+                padding: 0.5rem 1rem;
+            }
 
-        .chip .counter {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 0.125rem 0.5rem;
-            border-radius: 100px;
-            font-size: 0.75rem;
-        }
+            .dropdown-item.active {
+                background-color: #e9ecef;
+                color: var(--bs-primary);
+            }
 
-        .chip:not(.active) .counter {
-            background: #e9ecef;
-        }
+            @media (max-width: 992px) {
+                .product-item {
+                    padding: 0.5rem 0;
+                }
+            }
 
-        @media (max-width: 768px) {
             .filter-chips {
-                border-bottom: 1px solid #eee;
-                margin: 0 -1rem;
-                padding: 0 1rem;
+                overflow-x: auto;
+                padding: 4px;
+                background: #000000;
+                -webkit-overflow-scrolling: touch;
             }
 
-            .status-chip {
-                display: inline-block;
-                padding: 6px 16px;
+            .filter-chips a {
+                color: #fff;
+            }
+
+            .chip {
+                display: inline-flex;
+                align-items: center;
+                padding: 0.5rem 1rem;
                 border-radius: 100px;
-                font-size: 14px;
-                color: #666;
-                background: #f5f5f5;
+                background: #f8f9fa;
+                color: #6c757d;
                 text-decoration: none;
-                white-space: nowrap;
+                font-size: 0.875rem;
                 transition: all 0.2s ease;
+                border: 1px solid #dee2e6;
             }
 
-            .status-chip:hover {
+            .chip:hover {
                 background: #e9ecef;
-                color: #333;
+                color: var(--bs-primary);
+                border-color: #ced4da;
             }
 
-            .status-chip.active {
-                background: #e8f3ff;
-                color: #0095f6;
+            .chip.active {
+                background: var(--bs-primary);
+                color: #fff;
+                border-color: var(--bs-primary);
             }
 
-            .reset-filter {
-                color: #00a65a;
-                text-decoration: none;
-                font-size: 14px;
-                white-space: nowrap;
-            }
-
-            .reset-filter:hover {
-                text-decoration: underline;
-            }
-
-            /* Remove old chip styles */
-            .chip,
-            .chip:hover,
-            .chip.active,
             .chip .counter {
-                all: unset;
+                background: rgba(255, 255, 255, 0.2);
+                padding: 0.125rem 0.5rem;
+                border-radius: 100px;
+                font-size: 0.75rem;
             }
-        }
 
-        /* Improved Filter Pills */
-        .filter-nav {
-            scrollbar-width: thin;
-            scrollbar-color: #e4e4e4 transparent;
-        }
+            .chip:not(.active) .counter {
+                background: #e9ecef;
+            }
 
-        .filter-pill {
-            display: inline-flex;
-            align-items: center;
-            padding: 8px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            color: #4b5563;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            transition: all 0.2s ease;
-            text-decoration: none !important;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-        }
+            @media (max-width: 768px) {
+                .filter-chips {
+                    border-bottom: 1px solid #eee;
+                    margin: 0 -1rem;
+                    padding: 0 1rem;
+                }
 
-        .filter-pill:hover {
-            background: #f1f5f9;
-            border-color: #cbd5e1;
-            transform: translateY(-1px);
-        }
+                .status-chip {
+                    display: inline-block;
+                    padding: 6px 16px;
+                    border-radius: 100px;
+                    font-size: 14px;
+                    color: #666;
+                    background: #f5f5f5;
+                    text-decoration: none;
+                    white-space: nowrap;
+                    transition: all 0.2s ease;
+                }
 
-        .filter-pill.active {
-            background: #ffffff;
-            border: 2px solid #3b82f6;
-            color: #1d4ed8;
-            font-weight: 500;
-            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
-        }
+                .status-chip:hover {
+                    background: #e9ecef;
+                    color: #333;
+                }
 
-        .filter-pill i {
-            font-size: 0.9em;
-            width: 18px;
-            text-align: center;
-        }
+                .status-chip.active {
+                    background: #e8f3ff;
+                    color: #0095f6;
+                }
 
-        /* Scrollbar styling */
-        .filter-nav::-webkit-scrollbar {
-            height: 4px;
-        }
+                .reset-filter {
+                    color: #00a65a;
+                    text-decoration: none;
+                    font-size: 14px;
+                    white-space: nowrap;
+                }
 
-        .filter-nav::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
+                .reset-filter:hover {
+                    text-decoration: underline;
+                }
 
-        @media (max-width: 768px) {
+                /* Remove old chip styles */
+                .chip,
+                .chip:hover,
+                .chip.active,
+                .chip .counter {
+                    all: unset;
+                }
+            }
+
+            /* Improved Filter Pills */
+            .filter-nav {
+                scrollbar-width: thin;
+                scrollbar-color: #e4e4e4 transparent;
+            }
+
             .filter-pill {
-                padding: 6px 16px;
-                font-size: 13px;
+                display: inline-flex;
+                align-items: center;
+                padding: 8px 20px;
+                border-radius: 8px;
+                font-size: 14px;
+                color: #4b5563;
+                background: #f8fafc;
+                border: 1px solid #e2e8f0;
+                transition: all 0.2s ease;
+                text-decoration: none !important;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
             }
 
-            .filter-bar {
-                margin: 0 -1rem;
-                padding: 0 1rem;
-            }
-        }
-
-        .rating-stars {
-            display: flex;
-            flex-direction: row-reverse;
-            justify-content: start;
-            gap: 8px;
-        }
-
-        .rating-stars input {
-            display: none;
-        }
-
-        .rating-stars label {
-            font-size: 2rem;
-            color: #e4e4e4;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            transform-origin: center;
-        }
-
-        .rating-stars label:hover {
-            transform: scale(1.2);
-            color: #ffd700;
-        }
-
-        .rating-stars input:checked~label,
-        .rating-stars label:hover,
-        .rating-stars label:hover~label {
-            color: #ffd700;
-            animation: starBounce 0.5s ease;
-        }
-
-        @keyframes starBounce {
-            0% {
-                transform: scale(1);
+            .filter-pill:hover {
+                background: #f1f5f9;
+                border-color: #cbd5e1;
+                transform: translateY(-1px);
             }
 
-            50% {
-                transform: scale(1.3);
+            .filter-pill.active {
+                background: #ffffff;
+                border: 2px solid #3b82f6;
+                color: #1d4ed8;
+                font-weight: 500;
+                box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
             }
 
-            100% {
-                transform: scale(1.1);
+            .filter-pill i {
+                font-size: 0.9em;
+                width: 18px;
+                text-align: center;
             }
-        }
 
-        .preview-item {
-            position: relative;
-            width: 100px;
-            height: 100px;
-            border-radius: 8px;
-            overflow: hidden;
-            background: #f8f9fa;
-        }
+            /* Scrollbar styling */
+            .filter-nav::-webkit-scrollbar {
+                height: 4px;
+            }
 
-        .preview-item img,
-        .preview-item video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
+            .filter-nav::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 4px;
+            }
 
-        .preview-item .remove-btn {
-            position: absolute;
-            top: 2px;
-            right: 2px;
-            width: 24px;
-            height: 24px;
-            background: rgba(0, 0, 0, 0.5);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
+            @media (max-width: 768px) {
+                .filter-pill {
+                    padding: 6px 16px;
+                    font-size: 13px;
+                }
 
-        .file-type-icon {
-            font-size: 2rem;
-            color: #6c757d;
-        }
-    </style>
-@endsection
+                .filter-bar {
+                    margin: 0 -1rem;
+                    padding: 0 1rem;
+                }
+            }
+
+            .rating-stars {
+                display: flex;
+                flex-direction: row-reverse;
+                justify-content: start;
+                gap: 8px;
+            }
+
+            .rating-stars input {
+                display: none;
+            }
+
+            .rating-stars label {
+                font-size: 2rem;
+                color: #e4e4e4;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                transform-origin: center;
+            }
+
+            .rating-stars label:hover {
+                transform: scale(1.2);
+                color: #ffd700;
+            }
+
+            .rating-stars input:checked~label,
+            .rating-stars label:hover,
+            .rating-stars label:hover~label {
+                color: #ffd700;
+                animation: starBounce 0.5s ease;
+            }
+
+            @keyframes starBounce {
+                0% {
+                    transform: scale(1);
+                }
+
+                50% {
+                    transform: scale(1.3);
+                }
+
+                100% {
+                    transform: scale(1.1);
+                }
+            }
+
+            .preview-item {
+                position: relative;
+                width: 100px;
+                height: 100px;
+                border-radius: 8px;
+                overflow: hidden;
+                background: #f8f9fa;
+            }
+
+            .preview-item img,
+            .preview-item video {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+
+            .preview-item .remove-btn {
+                position: absolute;
+                top: 2px;
+                right: 2px;
+                width: 24px;
+                height: 24px;
+                background: rgba(0, 0, 0, 0.5);
+                color: white;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+            }
+
+            .file-type-icon {
+                font-size: 2rem;
+                color: #6c757d;
+            }
+        </style>
+    @endsection
 
 
-@section('scripts')
-    <script>
-        $(document).ready(function() {
-            let ordersData = @json($orders->keyBy('order_id'));
-            $('#confirmDeliveryModal').on('show.bs.modal', function(event) {
-                var button = $(event.relatedTarget);
-                var orderId = button.data('order-id');
-                $('#selected_order_id').val(orderId);
-                // Find the order's products
-                let order = ordersData[orderId];
-                let html = '';
-                if (order && order.items) {
-                    order.items.forEach(function(item, idx) {
-                        html += `
+    @section('scripts')
+        <script>
+            $(document).ready(function() {
+                let ordersData = @json($orders->keyBy('order_id'));
+                $('#confirmDeliveryModal').on('show.bs.modal', function(event) {
+                    var button = $(event.relatedTarget);
+                    var orderId = button.data('order-id');
+                    $('#selected_order_id').val(orderId);
+                    // Find the order's products
+                    let order = ordersData[orderId];
+                    let html = '';
+                    if (order && order.items) {
+                        order.items.forEach(function(item, idx) {
+                            html += `
                 <div class="mb-4 border-bottom pb-3">
                     <div class="d-flex align-items-center mb-2">
                         <img src="/${item.products.image ?? 'images/default-product.png'}" width="50" class="me-2 rounded">
@@ -531,9 +563,9 @@
                     <label>Rating (1-5):</label>
                     <div class="rating-stars mb-2">
                         ${[5,4,3,2,1].map(i => `
-                                                                                                                                                                                                                                        <input type="radio" id="star${i}_${idx}" name="ratings[${item.product_id}][rating]" value="${i}">
-                                                                                                                                                                                                                                        <label for="star${i}_${idx}"><i class="fas fa-star"></i></label>
-                                                                                                                                                                                                                                    `).join('')}
+                                                                                                                                                                                                                                                                                                            <input type="radio" id="star${i}_${idx}" name="ratings[${item.product_id}][rating]" value="${i}">
+                                                                                                                                                                                                                                                                                                            <label for="star${i}_${idx}"><i class="fas fa-star"></i></label>
+                                                                                                                                                                                                                                                                                                        `).join('')}
                     </div>
                     <label>Ulasan:</label>
                     <textarea name="ratings[${item.product_id}][review]" class="form-control mb-2" rows="2"></textarea>
@@ -543,159 +575,159 @@
                     <div class="preview-container mt-3 row g-2" id="previewContainer_${item.product_id}"></div>
                 </div>
                 `;
-                    });
-                }
-                $('#products-rating-list').html(html);
-
-                // Attach preview logic to each file input
-                $('.media-upload-input').each(function() {
-                    $(this).off('change').on('change', function(e) {
-                        const containerId = $(this).data('preview-container');
-                        const container = document.getElementById(containerId);
-                        const maxFiles = 5;
-                        const maxVideos = 1;
-                        const files = Array.from(this.files);
-                        let videoCount = 0;
-
-                        // Reset preview
-                        container.innerHTML = '';
-
-                        // Count existing videos
-                        files.forEach(file => {
-                            if (file.type.startsWith('video/')) videoCount++;
                         });
+                    }
+                    $('#products-rating-list').html(html);
 
-                        // Validation
-                        if (files.length > maxFiles) {
-                            alert(`Maksimal ${maxFiles} file diperbolehkan`);
-                            this.value = '';
-                            return;
-                        }
+                    // Attach preview logic to each file input
+                    $('.media-upload-input').each(function() {
+                        $(this).off('change').on('change', function(e) {
+                            const containerId = $(this).data('preview-container');
+                            const container = document.getElementById(containerId);
+                            const maxFiles = 5;
+                            const maxVideos = 1;
+                            const files = Array.from(this.files);
+                            let videoCount = 0;
 
-                        if (videoCount > maxVideos) {
-                            alert(`Maksimal ${maxVideos} video diperbolehkan`);
-                            this.value = '';
-                            return;
-                        }
+                            // Reset preview
+                            container.innerHTML = '';
 
-                        // Create previews
-                        files.forEach((file, index) => {
-                            const reader = new FileReader();
-                            const previewItem = document.createElement('div');
-                            previewItem.className = 'col-auto preview-item';
+                            // Count existing videos
+                            files.forEach(file => {
+                                if (file.type.startsWith('video/')) videoCount++;
+                            });
 
-                            if (file.type.startsWith('image/')) {
-                                reader.onload = (e) => {
-                                    previewItem.innerHTML = `
+                            // Validation
+                            if (files.length > maxFiles) {
+                                alert(`Maksimal ${maxFiles} file diperbolehkan`);
+                                this.value = '';
+                                return;
+                            }
+
+                            if (videoCount > maxVideos) {
+                                alert(`Maksimal ${maxVideos} video diperbolehkan`);
+                                this.value = '';
+                                return;
+                            }
+
+                            // Create previews
+                            files.forEach((file, index) => {
+                                const reader = new FileReader();
+                                const previewItem = document.createElement('div');
+                                previewItem.className = 'col-auto preview-item';
+
+                                if (file.type.startsWith('image/')) {
+                                    reader.onload = (e) => {
+                                        previewItem.innerHTML = `
                                         <img src="${e.target.result}" alt="Preview">
                                         <div class="file-info">${formatFileSize(file.size)}</div>
                                     `;
-                                }
-                                reader.readAsDataURL(file);
-                            } else if (file.type.startsWith('video/')) {
-                                previewItem.innerHTML = `
+                                    }
+                                    reader.readAsDataURL(file);
+                                } else if (file.type.startsWith('video/')) {
+                                    previewItem.innerHTML = `
                                     <div class="d-flex flex-column align-items-center justify-content-center h-100">
                                         <i class="fas fa-file-video file-type-icon"></i>
                                         <small class="text-muted mt-1">${file.name}</small>
                                         <div class="file-info">${formatFileSize(file.size)}</div>
                                     </div>
                                 `;
-                            }
+                                }
 
-                            container.appendChild(previewItem);
+                                container.appendChild(previewItem);
+                            });
                         });
                     });
                 });
-            });
-            
-            $('#deliveryRatingForm').submit(function(e) {
-                e.preventDefault();
-                let formData = new FormData(this);
-                let orderId = $('#selected_order_id').val();
 
-                // Add CSRF token to the FormData
-                formData.append('_token', '{{ csrf_token() }}');
+                $('#deliveryRatingForm').submit(function(e) {
+                    e.preventDefault();
+                    let formData = new FormData(this);
+                    let orderId = $('#selected_order_id').val();
 
-                $.ajax({
-                    url: '/orders/' + orderId + '/confirm-delivery',
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function(response) {
-                        $('#confirmDeliveryModal').modal('hide');
-                        Swal.fire({
-                            title: 'Berhasil',
-                            text: response.message,
-                        }).then(() => {
-                            window.location.reload();
-                        });
-                    },
-                    error: function(xhr) {
-                        Swal.fire({
-                            title: 'Gagal',
-                            text: 'Terjadi kesalahan saat mengirim penilaian',
-                        })
-                    }
+                    // Add CSRF token to the FormData
+                    formData.append('_token', '{{ csrf_token() }}');
+
+                    $.ajax({
+                        url: '/orders/' + orderId + '/confirm-delivery',
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function(response) {
+                            $('#confirmDeliveryModal').modal('hide');
+                            Swal.fire({
+                                title: 'Berhasil',
+                                text: response.message,
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        },
+                        error: function(xhr) {
+                            Swal.fire({
+                                title: 'Gagal',
+                                text: 'Terjadi kesalahan saat mengirim penilaian',
+                            })
+                        }
+                    });
                 });
-            });
 
-            // Handle "Bayar" button click
-            $('#payButton').on('click', function(e) {
-                e.preventDefault();
-                const $btn = $(this);
-                $btn.prop('disabled', true).html(
-                    '<span class="spinner-border spinner-border-sm"></span> Memproses...');
+                // Handle "Bayar" button click
+                $('#payButton').on('click', function(e) {
+                    e.preventDefault();
+                    const $btn = $(this);
+                    $btn.prop('disabled', true).html(
+                        '<span class="spinner-border spinner-border-sm"></span> Memproses...');
 
-                // Get order id from route or data attribute
-                var orderId = $btn.data('order-id');
+                    // Get order id from route or data attribute
+                    var orderId = $btn.data('order-id');
 
-                $.ajax({
-                    url: '/orders/' + orderId + '/get-snap-token',
-                    method: 'POST',
-                    data: {
-                        _token: '{{ csrf_token() }}'
-                    },
-                    success: function(response) {
-                        window.snap.pay(response.snap_token, {
-                            onSuccess: function(result) {
-                                window.location.href = '/orders/' + orderId;
-                            },
-                            onPending: function(result) {
-                                window.location.href = '/orders/' + orderId;
-                            },
-                            onError: function(result) {
-                                showSwalError('Payment failed: ' + result
-                                    .status_message);
-                                $btn.prop('disabled', false).html(
-                                    '<i class="fas fa-credit-card me-1"></i> Bayar'
-                                );
-                            },
-                            onClose: function() {
-                                $btn.prop('disabled', false).html(
-                                    '<i class="fas fa-credit-card me-1"></i> Bayar'
-                                );
-                            }
-                        });
-                    },
-                    error: function(xhr) {
-                        showSwalError('Gagal memproses pembayaran: ' + (xhr.responseJSON
-                            ?.error || 'Unknown error'));
-                        $btn.prop('disabled', false).html(
-                            '<i class="fas fa-credit-card me-1"></i> Bayar');
-                    }
+                    $.ajax({
+                        url: '/orders/' + orderId + '/get-snap-token',
+                        method: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}'
+                        },
+                        success: function(response) {
+                            window.snap.pay(response.snap_token, {
+                                onSuccess: function(result) {
+                                    window.location.href = '/orders/' + orderId;
+                                },
+                                onPending: function(result) {
+                                    window.location.href = '/orders/' + orderId;
+                                },
+                                onError: function(result) {
+                                    showSwalError('Payment failed: ' + result
+                                        .status_message);
+                                    $btn.prop('disabled', false).html(
+                                        '<i class="fas fa-credit-card me-1"></i> Bayar'
+                                    );
+                                },
+                                onClose: function() {
+                                    $btn.prop('disabled', false).html(
+                                        '<i class="fas fa-credit-card me-1"></i> Bayar'
+                                    );
+                                }
+                            });
+                        },
+                        error: function(xhr) {
+                            showSwalError('Gagal memproses pembayaran: ' + (xhr.responseJSON
+                                ?.error || 'Unknown error'));
+                            $btn.prop('disabled', false).html(
+                                '<i class="fas fa-credit-card me-1"></i> Bayar');
+                        }
+                    });
+                    return false;
                 });
-                return false;
+
             });
 
-        });
-
-        function formatFileSize(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-    </script>
-@endsection
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+        </script>
+    @endsection

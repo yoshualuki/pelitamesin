@@ -4,11 +4,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\RefundController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Admin\AdminProductController;
-use App\Http\Middleware\AdminMiddleware;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\Customer\CustomerController;
 use App\Http\Controllers\Home\HomeController;
 use App\Http\Controllers\Customer\CartController;
 use App\Http\Controllers\Customer\OrderController;
@@ -69,6 +68,7 @@ Route::prefix('orders')->group(function () {
     Route::post('/{order_id}/confirm-pickup', [OrderController::class, 'confirmPickup'])
         ->name('orders.confirm-pickup');
     Route::post('/{order}/submit-review', [OrderController::class, 'submitReview'])->name('orders.submit-review');
+    Route::post('/{order}/refund', [OrderController::class, 'processRefund'])->name('orders.refund');
 });
 
 Route::post('/midtrans/webhook', [PaymentController::class, 'handleWebhook']);
@@ -124,7 +124,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('/useradmin', [AdminUserController::class, 'storeAdmin'])->name('useradmin.store');
     Route::post('/useradmin/{id}/toggle', [AdminUserController::class, 'toggleAdminStatus'])->name('useradmin.toggle');
 
-
     // Product Routes
     Route::get('/product', [AdminProductController::class, 'index'])->name('product');
     Route::post('/product', [AdminProductController::class, 'store'])->name('product.store');
@@ -153,7 +152,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         'edit' => 'inventory.edit',
         'update' => 'inventory.update',
     ]);
-
+    // Refund Routes
+    Route::get('/refund', [RefundController::class, 'index'])->name('refund');
+    Route::get('/refund/{id}/detail', [RefundController::class, 'showDetail'])
+        ->name('refund.detail');
+    Route::post('/refund/{order}', [RefundController::class, 'processRefund'])->name('refund.process');
+    Route::post('/refund/{id}/approve', [RefundController::class, 'approve'])->name('refund.approve');
+    Route::post('/refund/{id}/reject', [RefundController::class, 'reject'])->name('refund.reject');
 
     // Reports (Owner Only)
 

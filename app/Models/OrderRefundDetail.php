@@ -10,7 +10,7 @@ class OrderRefundDetail extends Model
 {
     protected $fillable = [
         'refund_id',
-        'order_item_id',
+        'order_detail_id',
         'quantity',
         'refund_amount',
         'reason',
@@ -29,7 +29,7 @@ class OrderRefundDetail extends Model
 
     public function orderItem()
     {
-        return $this->belongsTo(OrderDetail::class, 'order_item_id');
+        return $this->belongsTo(OrderDetail::class, 'order_detail_id', 'id');
     }
 
     public function getConditionTextAttribute()
@@ -40,7 +40,7 @@ class OrderRefundDetail extends Model
             'damaged' => 'Rusak',
             'defective' => 'Cacat Produksi'
         ];
-        
+
         return $conditions[$this->condition] ?? $this->condition;
     }
 }

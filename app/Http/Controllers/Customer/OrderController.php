@@ -6,10 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use App\Models\Product;
+use App\Models\OrderRefund;
+use App\Models\OrderRefundDetail;
+use App\Models\OrderDetail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Midtrans\Config;
+use Illuminate\Support\Str;
 use Midtrans\Snap;
 
 class OrderController extends Controller
@@ -35,7 +39,8 @@ class OrderController extends Controller
             'shipped' => 'Dikirim',
             'completed' => 'Selesai',
             'cancelled' => 'Dibatalkan',
-            'refunded' => 'Refunded'
+            'refunded' => 'Refunded',
+            'waiting_refund' => 'Menunggu Konfirmasi Refund'
         ];
 
         // Get the requested status filter
@@ -78,9 +83,9 @@ class OrderController extends Controller
             'shipped' => 'Dikirim',
             'completed' => 'Selesai',
             'cancelled' => 'Dibatalkan',
-            'refunded' => 'Refunded'
+            'refunded' => 'Refunded',
+            'waiting_refund' => 'Menunggu Konfirmasi Refund'
         ];
-
 
         return view('customer.orderShow', compact('order', 'statuses'));
     }
@@ -88,7 +93,7 @@ class OrderController extends Controller
     public function updateStatus(Request $request, Order $order)
     {
         $validated = $request->validate([
-            'status' => 'required|in:waiting_payment,waiting_confirmation,processing,shipped,completed,cancelled,refunded'
+            'status' => 'required|in:waiting_payment,waiting_confirmation,processing,shipped,completed,cancelled,waiting_refund,refunded'
         ]);
 
         $order->update(['status' => $validated['status']]);
@@ -292,5 +297,137 @@ class OrderController extends Controller
         // 4. Dapatkan Snap Token
         $snapToken = Snap::getSnapToken($params);
         return response()->json(['snap_token' => $snapToken]);
+    }
+
+    public function processRefund(Request $request, $orderId)
+    {
+        $request->validate([
+            'items' => 'required|array',
+            'items.*.selected' => 'required|accepted',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.condition' => 'required|in:new,opened,damaged,defective',
+            'items.*.reason' => 'required|string|max:500',
+            'items.*.photos' => 'required|array|min:1',
+            'items.*.photos.*' => 'image|mimes:jpg,jpeg,png|max:5120',
+            'items.*.videos' => 'required|array|min:1',
+            'items.*.videos.*' => 'mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/mpeg|max:15728640',
+            'note' => 'nullable|string|max:1000',
+            'bank_name' => 'required_if:payment_method,virtual_account,bank_transfer',
+            'bank_account' => 'required_if:payment_method,virtual_account,bank_transfer',
+            'account_name' => 'required_if:payment_method,virtual_account,bank_transfer'
+        ]);
+
+        $order = Order::findOrFail($orderId);
+
+        // Check if order is eligible for refund
+        if (!$order->canRequestRefund()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order tidak memenuhi syarat untuk pengembalian dana'
+            ], 400);
+        }
+
+        // Calculate total refund amount
+        $totalRefund = 0;
+        $refundItems = [];
+
+        foreach ($request->items as $itemId => $itemData) {
+            $orderItem = OrderDetail::find($itemId);
+
+            if (!$orderItem || $orderItem->order_id !== $order->order_id) {
+                continue;
+            }
+
+            // Calculate refund amount for this item
+            $refundAmount = $orderItem->price * $itemData['quantity'];
+            $totalRefund += $refundAmount;
+
+            // Process photos
+            $photos = [];
+            foreach ($itemData['photos'] as $photo) {
+                $path = $photo->store('refunds/photos', 'public');
+                $photos[] = Storage::url($path);
+            }
+
+            // Process videos
+            $videos = [];
+            foreach ($itemData['videos'] as $video) {
+                $path = $video->store('refunds/videos', 'public');
+                $videos[] = Storage::url($path);
+            }
+
+            $refundItems[] = [
+                'order_detail_id' => $itemId,
+                'quantity' => $itemData['quantity'],
+                'refund_amount' => $refundAmount,
+                'reason' => $itemData['reason'],
+                'condition' => $itemData['condition'],
+                'images' => array_merge($photos, $videos)
+            ];
+        }
+
+        if ($totalRefund <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada item yang valid untuk dikembalikan'
+            ], 400);
+        }
+
+        // Create refund record
+        $refundData = [
+            'refund_id' => 'REF-' . Str::upper(Str::random(10)),
+            'order_id' => $order->order_id,
+            'user_id' => session()->get('user')->id,
+            'amount' => $totalRefund,
+            'status' => OrderRefund::STATUS_PENDING,
+            'reason' => $request->note,
+            'refund_method' => str_contains(strtolower($order->payment_method), 'virtual akun') ||
+                str_contains(strtolower($order->payment_method), 'bank transfer')
+                ? 'Bank Transfer'
+                : 'Kartu Kredit',
+            'bank_name' => $request->bank_name,
+            'bank_account' => $request->bank_account,
+            'account_name' => $request->account_name
+        ];
+
+        DB::beginTransaction();
+
+        try {
+            // Create refund
+            $refund = OrderRefund::create($refundData);
+
+            // Create refund items
+            foreach ($refundItems as $item) {
+                $images = $item['images'];
+                unset($item['images']);
+
+                $refundDetail = $refund->items()->create($item);
+
+                // Store images as JSON
+                $refundDetail->update(['images' => $images]);
+            }
+
+            // Update order status
+            $order->update(['status' => Order::STATUS_WAITING_REFUND]);
+
+            DB::commit();
+
+            // Notify admin
+            // Notification::send(User::admin()->get(), new NewRefundRequest($refund));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Permintaan pengembalian dana berhasil diajukan',
+                'data' => $refund
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            app('debugbar')->error('Refund processing error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat memproses pengembalian dana'
+            ], 500);
+        }
     }
 }

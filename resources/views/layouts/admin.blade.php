@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.2.2/css/dataTables.dataTables.css" />
+
     <link rel="icon" href="{{ asset('images/logo.png') }}" type="image/x-icon">
     <style>
         :root {
@@ -255,6 +257,13 @@
 
                     </a>
                 </li>
+                <li>
+                    <a href="{{ route('admin.refund') }}"
+                        class="sidebar-link @if (session()->get('menu') == 'refunds') active @endif">
+                        <i class="sidebar-icon fas fa-undo-alt"></i>
+                        <span class="sidebar-text">Refund</span>
+                    </a>
+                </li>
                 @if (session()->get('user')->role == 'owner')
                     <li>
                         <a href="{{ route('admin.inventory') }}"
@@ -364,6 +373,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+
+    <script src="https://cdn.datatables.net/2.2.2/js/dataTables.js"></script>
 
     <script>
         // Toggle sidebar

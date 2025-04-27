@@ -144,7 +144,8 @@
                             <div class="payment-instruction mt-4">
                                 <h6 class="text-primary">Instruksi Pembayaran</h6>
 
-                                @if (str_contains(strtolower($order->payment_method), 'virtual akun'))
+                                @if (str_contains(strtolower($order->payment_method), 'virtual akun') ||
+                                        str_contains(strtolower($order->payment_method), 'bank transfer'))
                                     <ol class="list-group list-group-numbered">
                                         <li class="list-group-item border-0 p-1 ps-4">Masuk ke aplikasi mobile banking atau
                                             ATM bank {{ str_replace('VA ', '', $order->payment_method) }}</li>
@@ -209,7 +210,7 @@
                                 <div class="timeline-marker"></div>
                                 <div class="timeline-content">
                                     <h6>Pesanan Diproses</h6>
-                                    @if ($order->status == 'processing' || $order->status == 'shipped' || $order->status == 'completed')
+                                    @if ($order->order_processed_at)
                                         <p class="text-muted small">{{ $order->order_processed_at->format('d M Y H:i') }}
                                         </p>
                                     @else
@@ -223,7 +224,7 @@
                                 <div class="timeline-marker"></div>
                                 <div class="timeline-content">
                                     <h6>Pesanan Dikirim</h6>
-                                    @if ($order->status == 'shipped' || $order->status == 'completed')
+                                    @if ($order->order_sent_at)
                                         <p class="text-muted small">{{ $order->order_sent_at->format('d M Y H:i') }}</p>
                                     @else
                                         <p class="text-muted small">-
@@ -236,7 +237,7 @@
                                 <div class="timeline-marker"></div>
                                 <div class="timeline-content">
                                     <h6>Pesanan Selesai</h6>
-                                    @if ($order->status == 'completed')
+                                    @if ($order->completed_at)
                                         <p class="text-muted small">{{ $order->completed_at->format('d M Y H:i') }}</p>
                                     @else
                                         <p class="text-muted small">-
@@ -313,7 +314,11 @@
                             </button>
                         @endif
 
-                        @if ($order->status == 'shipped' && $order->order_sent_at != null && $order->order_sent_at->diffInDays(now()) >= 1)
+                        @if (
+                            $order->status == 'shipped' &&
+                                $order->courier != 'self_pickup' &&
+                                $order->order_sent_at != null &&
+                                $order->order_sent_at->diffInDays(now()) >= 1)
                             <button class="btn btn-warning w-100 mb-2" data-bs-toggle="modal"
                                 data-bs-target="#returnRequestModal">
                                 <i class="fas fa-undo me-2"></i> Ajukan Retur
@@ -350,47 +355,171 @@
 
     <!-- Return Request Modal -->
     <div class="modal fade" id="returnRequestModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Ajukan Retur</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header bg-warning text-white">
+                    <h5 class="modal-title">Ajukan Pengembalian Dana</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
                 </div>
-                <form action="{{ route('orders', $order->order_id) }}" method="POST">
+                <form id="refundRequestForm" enctype="multipart/form-data">
                     @csrf
+                    <input type="hidden" name="order_id" value="{{ $order->order_id }}">
                     <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Pilih Produk</label>
+                        <!-- Product Selection -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Pilih Produk yang Dikembalikan</label>
                             @foreach ($order->items as $item)
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" type="checkbox" name="items[]"
-                                        value="{{ $item->id }}" id="item-{{ $item->id }}">
-                                    <label class="form-check-label" for="item-{{ $item->id }}">
-                                        {{ $item->products->name }} (Qty: {{ $item->quantity }})
-                                    </label>
+                                <div class="card mb-2">
+                                    <div class="card-body p-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input refund-item" type="checkbox"
+                                                name="items[{{ $item->id }}][selected]" value="1"
+                                                id="item-{{ $item->id }}" data-item-id="{{ $item->id }}"
+                                                onchange="toggleRefundFields(this)">
+                                            <label class="form-check-label d-flex align-items-center"
+                                                for="item-{{ $item->id }}">
+                                                <img src="{{ asset($item->products->image) }}" class="img-thumbnail me-3"
+                                                    width="60" alt="{{ $item->products->name }}">
+                                                <div>
+                                                    <h6 class="mb-1">{{ $item->products->name }}</h6>
+                                                    <div class="text-muted small">
+                                                        Qty: {{ $item->quantity }} |
+                                                        Rp {{ number_format($item->price, 0, ',', '.') }}
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+
+                                        <!-- Refund Details (Hidden by default) -->
+                                        <div id="refund-fields-{{ $item->id }}" class="mt-3 collapse">
+                                            <div class="border-top pt-3">
+                                                <!-- Quantity -->
+                                                <div class="row mb-3">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Jumlah yang Dikembalikan</label>
+                                                        <select class="form-select"
+                                                            name="items[{{ $item->id }}][quantity]">
+                                                            @for ($i = 1; $i <= $item->quantity; $i++)
+                                                                <option value="{{ $i }}">{{ $i }}
+                                                                </option>
+                                                            @endfor
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Kondisi Produk</label>
+                                                        <select class="form-select"
+                                                            name="items[{{ $item->id }}][condition]">
+                                                            <option value="new">Masih Baru (Segel Utuh)</option>
+                                                            <option value="opened">Sudah Dibuka</option>
+                                                            <option value="damaged">Rusak</option>
+                                                            <option value="defective">Cacat Produksi</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Evidence Upload -->
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-bold">Upload Bukti Produk</label>
+                                                    <small class="text-muted d-block mb-2">
+                                                        Wajib upload minimal 1 foto dan 1 video kondisi produk (maks. 5MB
+                                                        per file)
+                                                    </small>
+
+                                                    <!-- Photo Upload -->
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Foto Produk (Min. 1 foto)</label>
+                                                        <input type="file" name="items[{{ $item->id }}][photos][]"
+                                                            class="form-control photo-upload" accept="image/*" multiple
+                                                            data-item-id="{{ $item->id }}"
+                                                            onchange="previewRefundFiles(this, 'photo')">
+                                                        <div class="invalid-feedback">Harus upload minimal 1 foto</div>
+                                                    </div>
+
+                                                    <!-- Video Upload -->
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Video Produk (Min. 1 video)</label>
+                                                        <input type="file" name="items[{{ $item->id }}][videos][]"
+                                                            class="form-control video-upload" accept="video/*" multiple
+                                                            data-item-id="{{ $item->id }}"
+                                                            onchange="previewRefundFiles(this, 'video')">
+                                                        <div class="invalid-feedback">Harus upload minimal 1 video</div>
+                                                    </div>
+
+                                                    <!-- Preview Area -->
+                                                    <div class="row g-2" id="preview-container-{{ $item->id }}">
+                                                    </div>
+                                                </div>
+
+                                                <!-- Reason -->
+                                                <div class="mb-3">
+                                                    <label class="form-label">Alasan Pengembalian</label>
+                                                    <textarea class="form-control" name="items[{{ $item->id }}][reason]" rows="2"
+                                                        placeholder="Jelaskan alasan pengembalian produk ini..."></textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             @endforeach
                         </div>
 
-                        <div class="mb-3">
-                            <label for="returnReason" class="form-label">Alasan Retur</label>
-                            <select class="form-select" id="returnReason" name="reason" required>
-                                <option value="">Pilih alasan</option>
-                                <option value="damaged">Produk Rusak</option>
-                                <option value="wrong_item">Barang Tidak Sesuai</option>
-                                <option value="not_needed">Tidak Dibutuhkan</option>
-                                <option value="other">Lainnya</option>
-                            </select>
+                        <!-- Refund Method -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Metode Pengembalian Dana</label>
+                            @if (str_contains(strtolower($order->payment_method), 'virtual akun') ||
+                                    str_contains(strtolower($order->payment_method), 'bank transfer'))
+                                <div class="alert alert-info">
+                                    Karena Anda membayar menggunakan {{ strtoupper($order->payment_method) }}, dana akan
+                                    dikembalikan ke rekening bank Anda.
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Bank Tujuan</label>
+                                        <select class="form-select" name="bank_name" id="bankSelect">
+                                            <option value="">Pilih Bank</option>
+                                            <option value="BCA">BCA</option>
+                                            <option value="Mandiri">Mandiri</option>
+                                            <option value="BRI">BRI</option>
+                                            <option value="BNI">BNI</option>
+                                            <option value="CIMB">CIMB</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Nomor Rekening</label>
+                                        <input type="text" class="form-control" name="bank_account"
+                                            placeholder="Contoh: 1234567890">
+                                    </div>
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label">Nama Pemilik Rekening</label>
+                                        <input type="text" class="form-control" name="account_name"
+                                            placeholder="Nama sesuai rekening">
+                                    </div>
+                                </div>
+                            @else
+                                <div class="alert alert-info">
+                                    Dana akan dikembalikan ke Kartu Kredit atau melalui metode lain
+                                    yang akan kami infokan.
+                                </div>
+                                <input type="hidden" name="bank_name" value="">
+                                <input type="hidden" name="bank_account" value="">
+                                <input type="hidden" name="account_name" value="">
+                            @endif
                         </div>
 
+                        <!-- Additional Notes -->
                         <div class="mb-3">
-                            <label for="returnNote" class="form-label">Keterangan Tambahan</label>
-                            <textarea class="form-control" id="returnNote" name="note" rows="3"></textarea>
+                            <label class="form-label fw-bold">Catatan Tambahan</label>
+                            <textarea class="form-control" name="note" rows="3"
+                                placeholder="Tambahkan catatan lain jika diperlukan..."></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-primary">Ajukan Retur</button>
+                        <button type="submit" class="btn btn-warning text-white" id="submitRefundBtn">
+                            <i class="fas fa-paper-plane me-1"></i> Ajukan Pengembalian
+                        </button>
                     </div>
                 </form>
             </div>
@@ -412,7 +541,7 @@
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle me-2"></i>
                             Silakan konfirmasi bahwa Anda telah menerima pesanan ini. Setelah dikonfirmasi, pesanan akan
-                            ditandai sebagai selesai.
+                            ditandai sebagai selesai dan tidak dapat dibatalkan.
                         </div>
 
                         <div class="mb-3">
@@ -510,6 +639,61 @@
 
 @section('styles')
     <style>
+        .file-upload-wrapper {
+            position: relative;
+        }
+
+        .refund-preview {
+            max-width: 100%;
+            max-height: 120px;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+
+        .video-preview-wrapper {
+            position: relative;
+            background: #000;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .video-preview {
+            width: 100%;
+            max-height: 120px;
+        }
+
+        .preview-item {
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .remove-preview {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(220, 53, 69, 0.8);
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .preview-badge {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+        }
+
         .timeline {
             position: relative;
             padding-left: 1rem;
@@ -686,6 +870,206 @@
 
 @section('scripts')
     <script>
+        // Toggle refund fields when product is selected
+        function toggleRefundFields(checkbox) {
+            const itemId = checkbox.getAttribute('data-item-id');
+            const refundFields = document.getElementById(`refund-fields-${itemId}`);
+
+            if (checkbox.checked) {
+                $(refundFields).collapse('show');
+            } else {
+                $(refundFields).collapse('hide');
+                // Clear previews when unchecked
+                document.getElementById(`preview-container-${itemId}`).innerHTML = '';
+            }
+        }
+
+        // Preview uploaded files
+        function previewRefundFiles(input, type) {
+            const itemId = input.getAttribute('data-item-id');
+            const previewContainer = document.getElementById(`preview-container-${itemId}`);
+
+            // Clear existing previews for this type
+            const existingPreviews = previewContainer.querySelectorAll(`.preview-${type}`);
+            existingPreviews.forEach(preview => preview.remove());
+
+            if (input.files) {
+                // Validate file size first
+                let hasInvalidFile = false;
+                for (let i = 0; i < input.files.length; i++) {
+                    if (input.files[i].size > 5 * 1024 * 1024) {
+                        hasInvalidFile = true;
+                        break;
+                    }
+                }
+
+                if (hasInvalidFile) {
+                    input.classList.add('is-invalid');
+                    showToast('error', 'Ukuran file maksimal 5MB');
+                    return;
+                } else {
+                    input.classList.remove('is-invalid');
+                }
+
+                // Process each file
+                for (let i = 0; i < input.files.length; i++) {
+                    const file = input.files[i];
+                    const reader = new FileReader();
+
+                    reader.onload = function(e) {
+                        const previewId = `preview-${type}-${itemId}-${Date.now()}-${i}`;
+                        let previewHtml = '';
+
+                        if (type === 'photo') {
+                            previewHtml = `
+                            <div class="col-6 col-md-4 col-lg-3 preview-item preview-${type}" id="${previewId}">
+                                <img src="${e.target.result}" class="refund-preview w-100 h-100">
+                                <span class="preview-badge">Foto ${i+1}</span>
+                                <span class="remove-preview" onclick="removeRefundPreview('${previewId}', '${itemId}', '${type}')">
+                                    <i class="fas fa-times"></i>
+                                </span>
+                            </div>
+                        `;
+                        } else if (type === 'video') {
+                            previewHtml = `
+                            <div class="col-12 col-md-6 preview-item preview-${type}" id="${previewId}">
+                                <div class="video-preview-wrapper">
+                                    <video controls class="video-preview">
+                                        <source src="${e.target.result}" type="${file.type}">
+                                    </video>
+                                    <span class="preview-badge">Video ${i+1}</span>
+                                    <span class="remove-preview" onclick="removeRefundPreview('${previewId}', '${itemId}', '${type}')">
+                                        <i class="fas fa-times"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        `;
+                        }
+
+                        previewContainer.insertAdjacentHTML('beforeend', previewHtml);
+                    };
+
+                    reader.readAsDataURL(file);
+                }
+            }
+        }
+
+        // Remove preview and clear file input
+        function removeRefundPreview(previewId, itemId, type) {
+            document.getElementById(previewId).remove();
+
+            // Clear the corresponding file input
+            const input = document.querySelector(`.${type}-upload[data-item-id="${itemId}"]`);
+            if (input) {
+                input.value = '';
+                input.classList.remove('is-invalid');
+            }
+        }
+
+        // Form submission with AJAX
+        document.getElementById('refundRequestForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const form = e.target;
+            const formData = new FormData(form);
+            const submitBtn = document.getElementById('submitRefundBtn');
+
+            // Validate at least one product selected
+            const checkedItems = document.querySelectorAll('.refund-item:checked');
+            if (checkedItems.length === 0) {
+                showToast('error', 'Pilih minimal 1 produk untuk dikembalikan');
+                return;
+            }
+
+            // Validate each selected product has required files
+            let isValid = true;
+            checkedItems.forEach(item => {
+                const itemId = item.getAttribute('data-item-id');
+                const photoInput = document.querySelector(`.photo-upload[data-item-id="${itemId}"]`);
+                const videoInput = document.querySelector(`.video-upload[data-item-id="${itemId}"]`);
+
+                if (!photoInput.files || photoInput.files.length === 0) {
+                    photoInput.classList.add('is-invalid');
+                    isValid = false;
+                }
+
+                if (!videoInput.files || videoInput.files.length === 0) {
+                    videoInput.classList.add('is-invalid');
+                    isValid = false;
+                }
+            });
+
+            // Validate bank details if payment method requires it
+            if (['virtual account', 'bank transfer'].some(method => '{{ strtolower($order->payment_method) }}'
+                    .includes(method))) {
+                const bankSelect = document.getElementById('bankSelect');
+                const bankAccount = formData.get('bank_account');
+                const accountName = formData.get('account_name');
+
+                if (!bankSelect.value || !bankAccount || !accountName) {
+                    showToast('error', 'Harap lengkapi detail rekening bank untuk pengembalian dana');
+                    isValid = false;
+                }
+            }
+
+            if (!isValid) {
+                showToast('error', 'Harap lengkapi semua data yang diperlukan');
+                return;
+            }
+
+            // Disable submit button
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Mengirim...';
+
+            // AJAX request
+            fetch('{{ route('orders.refund', $order->order_id) }}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('success', data.message);
+                        $('#refundRequestModal').modal('hide');
+                        // Refresh page or update UI as needed
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        showToast('error', data.message || 'Terjadi kesalahan');
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-paper-plane me-1"></i> Ajukan Pengembalian';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', 'Terjadi kesalahan saat mengirim permintaan');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane me-1"></i> Ajukan Pengembalian';
+                });
+        });
+
+        // Helper function to show toast notifications
+        function showToast(type, message) {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            });
+
+            Toast.fire({
+                icon: type,
+                title: message
+            });
+        }
         $(document).ready(function() {
             $('#confirmRatingModal').on('show.bs.modal', function(event) {
                 var button = $(event.relatedTarget);
@@ -706,9 +1090,9 @@
                     <label>Rating (1-5):</label>
                     <div class="rating-stars mb-2">
                         ${[5,4,3,2,1].map(i => `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <input type="radio" id="star${i}_${idx}" name="ratings[${item.product_id}][rating]" value="${i}">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <label for="star${i}_${idx}"><i class="fas fa-star"></i></label>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                `).join('')}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <input type="radio" id="star${i}_${idx}" name="ratings[${item.product_id}][rating]" value="${i}">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <label for="star${i}_${idx}"><i class="fas fa-star"></i></label>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        `).join('')}
                     </div>
                     <label>Ulasan:</label>
                     <textarea name="ratings[${item.product_id}][review]" class="form-control mb-2" rows="2"></textarea>
@@ -788,7 +1172,7 @@
                 var orderId = button.data('order-id');
                 $('#selected_order_id').val(orderId);
                 // Find the order's products
-                let order = ordersData[orderId];
+                let order = '{{ $order }}';
                 let html = '';
                 if (order && order.items) {
                     order.items.forEach(function(item, idx) {
@@ -801,9 +1185,9 @@
                     <label>Rating (1-5):</label>
                     <div class="rating-stars mb-2">
                         ${[5,4,3,2,1].map(i => `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <input type="radio" id="star${i}_${idx}" name="ratings[${item.product_id}][rating]" value="${i}">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <label for="star${i}_${idx}"><i class="fas fa-star"></i></label>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                `).join('')}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <input type="radio" id="star${i}_${idx}" name="ratings[${item.product_id}][rating]" value="${i}">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <label for="star${i}_${idx}"><i class="fas fa-star"></i></label>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        `).join('')}
                     </div>
                     <label>Ulasan:</label>
                     <textarea name="ratings[${item.product_id}][review]" class="form-control mb-2" rows="2"></textarea>

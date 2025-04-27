@@ -70,6 +70,7 @@ class Order extends Model
     const STATUS_SHIPPED = 'shipped';
     const STATUS_COMPLETED = 'completed';
     const STATUS_CANCELLED = 'cancelled';
+    const STATUS_WAITING_REFUND = 'waiting_refund';
     const STATUS_PARTIALLY_REFUNDED = 'partially_refunded';
     const STATUS_REFUNDED = 'refunded';
 
@@ -99,7 +100,7 @@ class Order extends Model
 
     public function refunds()
     {
-        return $this->hasMany(OrderRefund::class, 'order_id', 'order_id');
+        return $this->belongsTo(OrderRefund::class, 'order_id', 'order_id');
     }
 
     public function cogs()
@@ -120,7 +121,7 @@ class Order extends Model
     // Helper methods
     public function canRequestRefund()
     {
-        return $this->status === self::STATUS_COMPLETED &&
+        return $this->status === self::STATUS_SHIPPED &&
             $this->completed_at &&
             $this->completed_at->diffInDays(now()) <= 7;
     }

@@ -46,7 +46,7 @@ class OrderRefund extends Model
 
     public function items()
     {
-        return $this->hasMany(OrderRefundItem::class, 'refund_id');
+        return $this->hasMany(OrderRefundDetail::class, 'refund_id');
     }
 
     // Helper methods
