@@ -16,12 +16,14 @@ class HomeController extends Controller
     {
         // Get new arrivals - latest added products with stock > 0
         $newProducts = Product::where('stock', '>', 0)
+            ->whereHas('inventory')
             ->orderBy('created_at', 'desc')
             ->take(10)
             ->get();
 
         // Get top products based on orders, if none exist get random products
         $topProducts = Product::where('stock', '>', 0)
+            ->whereHas('inventory')
             ->whereHas('orderItems', function ($query) {
                 $query->whereHas('order', function ($q) {
                     $q->whereIn('status', ["'completed'", "'shipped'"]);
@@ -39,6 +41,7 @@ class HomeController extends Controller
         // If no top products found, get random products
         if ($topProducts->isEmpty()) {
             $topProducts = Product::where('stock', '>', 0)
+                ->whereHas('inventory')
                 ->inRandomOrder()
                 ->take(10)
                 ->get();

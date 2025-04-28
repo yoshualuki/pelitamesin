@@ -62,6 +62,8 @@ class OrderController extends Controller
         $status = request('status');
         $user = session()->get('user');
 
+        app('debugbar')->info($user->toArray());
+
         $orders = Order::with(['user', 'items.products'])
             ->when(request('status'), function ($query) {
                 $query->where('status', request('status'));

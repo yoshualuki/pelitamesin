@@ -31,50 +31,50 @@ class PaymentController extends Controller
 
     public function processPayment(Request $request)
     {
-        $courier = $request->courier;
-
-        if ($courier != 'self_pickup') {
-            $validated = $request->validate([
-                'name' => 'required',
-                'email' => 'required|email',
-                'phone' => 'required',
-                'address' => 'required',
-                'province' => 'required',
-                'city' => 'required',
-                'courier' => 'required',
-                'service' => 'required',
-                'shipping_cost' => 'required|numeric'
-            ]);
-        } else {
-            $validated = $request->validate([
-                'name' => 'required',
-                'email' => 'required|email',
-                'phone' => 'required',
-                'address' => 'required',
-                'province' => 'required',
-                'city' => 'required',
-                'courier' => 'required',
-            ]);
-        }
-
-
-        $cart = session()->get('cart', []);
-        $user = session()->get('user');
-        $totalWeight = 0;
-        $subtotal = 0;
-
-        foreach ($cart as $id => $details) {
-            $product = Product::find($id);
-            $subtotal += $product->price * $details['quantity'];
-            $totalWeight += $product->weight * $details['quantity'];
-        }
-
-        $total = $subtotal + $request->shipping_cost;
-        $orderId = 'ORD-' . time() . '-' . Str::random(4);
-
-        DB::beginTransaction();
 
         try {
+            $courier = $request->courier;
+
+            if ($courier != 'self_pickup') {
+                $validated = $request->validate([
+                    'name' => 'required',
+                    'email' => 'required|email',
+                    'phone' => 'required',
+                    'address' => 'required',
+                    'province' => 'required',
+                    'city' => 'required',
+                    'courier' => 'required',
+                    'service' => 'required',
+                    'shipping_cost' => 'required|numeric'
+                ]);
+            } else {
+                $validated = $request->validate([
+                    'name' => 'required',
+                    'email' => 'required|email',
+                    'phone' => 'required',
+                    'address' => 'required',
+                    'province' => 'required',
+                    'city' => 'required',
+                    'courier' => 'required',
+                ]);
+            }
+
+
+            $cart = session()->get('cart', []);
+            $user = session()->get('user');
+            $totalWeight = 0;
+            $subtotal = 0;
+
+            foreach ($cart as $id => $details) {
+                $product = Product::find($id);
+                $subtotal += $product->price * $details['quantity'];
+                $totalWeight += $product->weight * $details['quantity'];
+            }
+
+            $total = $subtotal + $request->shipping_cost;
+            $orderId = 'ORD-' . time() . '-' . Str::random(4);
+
+            DB::beginTransaction();
             $user = User::find($user->id);
             if (!$user) {
                 DB::rollBack();
