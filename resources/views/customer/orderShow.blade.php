@@ -331,6 +331,13 @@
                                 <i class="fas fa-times-circle me-2"></i> Batalkan Pesanan
                             </button>
                         @endif
+                        @if (in_array($order->status, ['waiting_return']))
+                            <button class="btn btn-success w-100" data-bs-toggle="modal"
+                                data-bs-target="#modalResiPengiriman">
+                                <i class="fas fa-check-circle me-2"></i> Konfirmasi Resi
+                            </button>
+                        @endif
+
 
                         @if ($order->status == 'completed')
                             @php
@@ -633,6 +640,31 @@
                     </div>
                 </form>
             </div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="modalResiPengiriman" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <form id="formResiPengiriman">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalResiLabel">Konfirmasi Resi Pengiriman</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="inputResi" class="form-label">Nomor Resi</label>
+                            <input type="text" class="form-control" id="inputResi" name="resi" required>
+                            <input type="hidden" id="inputOrderId" name="order_id">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Kirim</button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 @endsection
@@ -1090,9 +1122,9 @@
                     <label>Rating (1-5):</label>
                     <div class="rating-stars mb-2">
                         ${[5,4,3,2,1].map(i => `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <input type="radio" id="star${i}_${idx}" name="ratings[${item.product_id}][rating]" value="${i}">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <label for="star${i}_${idx}"><i class="fas fa-star"></i></label>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        `).join('')}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <input type="radio" id="star${i}_${idx}" name="ratings[${item.product_id}][rating]" value="${i}">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <label for="star${i}_${idx}"><i class="fas fa-star"></i></label>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                `).join('')}
                     </div>
                     <label>Ulasan:</label>
                     <textarea name="ratings[${item.product_id}][review]" class="form-control mb-2" rows="2"></textarea>
@@ -1185,9 +1217,9 @@
                     <label>Rating (1-5):</label>
                     <div class="rating-stars mb-2">
                         ${[5,4,3,2,1].map(i => `
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <input type="radio" id="star${i}_${idx}" name="ratings[${item.product_id}][rating]" value="${i}">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <label for="star${i}_${idx}"><i class="fas fa-star"></i></label>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        `).join('')}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <input type="radio" id="star${i}_${idx}" name="ratings[${item.product_id}][rating]" value="${i}">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <label for="star${i}_${idx}"><i class="fas fa-star"></i></label>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                `).join('')}
                     </div>
                     <label>Ulasan:</label>
                     <textarea name="ratings[${item.product_id}][review]" class="form-control mb-2" rows="2"></textarea>
@@ -1294,6 +1326,45 @@
                 });
             });
         })
+
+        $('#modalResiPengiriman').on('show.bs.modal', function(event) {
+            var button = $(event.relatedTarget);
+            var orderId = button.data('order-id');
+            $('#selected_order_id').val(orderId);
+            alert('a');
+
+        });
+        $('#formResiPengiriman').submit(function(e) {
+            e.preventDefault();
+            let formData = new FormData(this);
+            let orderId = $('#selected_order_id').val();
+
+            // Add CSRF token to the FormData
+            formData.append('_token', '{{ csrf_token() }}');
+
+            $.ajax({
+                url: '/orders/' + orderId + '/update-resi',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    $('#modalResiPengiriman').modal('hide');
+                    Swal.fire({
+                        title: 'Berhasil',
+                        text: response.message,
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                },
+                error: function(xhr) {
+                    Swal.fire({
+                        title: 'Gagal',
+                        text: 'Terjadi kesalahan saat mengirim penilaian',
+                    })
+                }
+            });
+        });
 
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';

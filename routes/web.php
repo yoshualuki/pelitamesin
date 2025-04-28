@@ -69,6 +69,7 @@ Route::prefix('orders')->group(function () {
         ->name('orders.confirm-pickup');
     Route::post('/{order}/submit-review', [OrderController::class, 'submitReview'])->name('orders.submit-review');
     Route::post('/{order}/refund', [OrderController::class, 'processRefund'])->name('orders.refund');
+    Route::post('/{order}/update-resi', [OrderController::class, 'updateResi'])->name('orders.update-resi');
 });
 
 Route::post('/midtrans/webhook', [PaymentController::class, 'handleWebhook']);

@@ -20,13 +20,13 @@ class OrderRefund extends Model
         'bank_name',
         'account_name',
         'processed_at',
-        'receipt_image'
+        'receipt_image',
+        'resi'
     ];
 
     // Status constants
     const STATUS_PENDING = 'pending';
     const STATUS_APPROVED = 'approved';
-    const STATUS_PROCESSED = 'processed';
     const STATUS_REJECTED = 'rejected';
 
     public function order()
@@ -53,14 +53,5 @@ class OrderRefund extends Model
     public function isProcessable()
     {
         return $this->status === self::STATUS_APPROVED;
-    }
-
-    public function markAsProcessed($receiptImage = null)
-    {
-        $this->update([
-            'status' => self::STATUS_PROCESSED,
-            'processed_at' => now(),
-            'receipt_image' => $receiptImage
-        ]);
     }
 }

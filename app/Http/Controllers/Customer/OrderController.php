@@ -18,12 +18,26 @@ use Midtrans\Snap;
 
 class OrderController extends Controller
 {
+    protected $statuses;
+
     public function __construct()
     {
         Config::$serverKey = config('midtrans.server_key');
         Config::$isProduction = config('midtrans.is_production');
         Config::$isSanitized = true;
         Config::$is3ds = true;
+
+        $this->statuses = [
+            'waiting_payment' => 'Menunggu Pembayaran',
+            'waiting_confirmation' => 'Menunggu Konfirmasi',
+            'processing' => 'Sedang di Proses',
+            'shipped' => 'Dikirim',
+            'completed' => 'Selesai',
+            'cancelled' => 'Dibatalkan',
+            'refunded' => 'Refund',
+            'waiting_return' => 'Menunggu Pengiriman Barang Retur',
+            'waiting_refund' => 'Menunggu Konfirmasi Refund'
+        ];
     }
 
     public function index()
@@ -40,6 +54,7 @@ class OrderController extends Controller
             'completed' => 'Selesai',
             'cancelled' => 'Dibatalkan',
             'refunded' => 'Refunded',
+            'waiting_return' => 'Menunggu Pengiriman Barang Retur',
             'waiting_refund' => 'Menunggu Konfirmasi Refund'
         ];
 
@@ -76,16 +91,7 @@ class OrderController extends Controller
             ->where('order_id', $order_id)
             ->firstOrFail();
 
-        $statuses = [
-            'waiting_payment' => 'Menunggu Pembayaran',
-            'waiting_confirmation' => 'Menunggu Konfirmasi',
-            'processing' => 'Sedang di Proses',
-            'shipped' => 'Dikirim',
-            'completed' => 'Selesai',
-            'cancelled' => 'Dibatalkan',
-            'refunded' => 'Refunded',
-            'waiting_refund' => 'Menunggu Konfirmasi Refund'
-        ];
+        $statuses = $this->statuses;
 
         return view('customer.orderShow', compact('order', 'statuses'));
     }
@@ -429,5 +435,32 @@ class OrderController extends Controller
                 'message' => 'Terjadi kesalahan saat memproses pengembalian dana'
             ], 500);
         }
+    }
+
+    public function updateResi(Request $request, $orderId)
+    {
+        $order = OrderRefund::where('order_id', $orderId)->firstOrFail();
+        if ($order->status !== OrderRefund::STATUS_APPROVED) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order tidak dapat diupdate dengan status ini'
+            ], 400);
+        }
+
+        $request->validate([
+            'resi' => 'required|string|max:50',
+        ]);
+
+        $order->update([
+            'resi' => $request->resi,
+        ]);
+
+        $order->order->update([
+            'status' => Order::STATUS_COMPLETED,
+        ]);
+
+        return response()->json([
+            'message' => 'Resi berhasil diupdate',
+        ]);
     }
 }

@@ -107,7 +107,17 @@
                                                 @break
 
                                                 @case('approved')
-                                                    Refund Disetujui, Akan Otomatis di transfer dalam maksimal 30 hari kerja
+                                                    Refund Disetujui,
+                                                    @if ($order->refunds->resi)
+                                                        Refund akan otomatis di transfer ke bank akun / cc setelah barang di terima
+                                                        dalam maksimal 30 hari kerja
+                                                    @else
+                                                        silahkan kirikman produk ke alamat berikut:
+                                                        <div class="text-danger mt-1" style="font-size:0.9em;">
+                                                            <i class="fas fa-info-circle me-1"></i>
+                                                            Jl. Bubutan No.101A, Surabaya ((031) 99250845)
+                                                        </div>
+                                                    @endif
                                                 @break
 
                                                 @case('rejected')
@@ -200,7 +210,14 @@
                                                 data-order-id="{{ $order->order_id }}">
                                                 <i class="fas fa-check-circle me-1"></i>Konfirmasi Barang Diterima
                                             </button>
+                                        @elseif ($order->status === 'waiting_return')
+                                            <button class="btn btn-success mt-2" data-bs-toggle="modal"
+                                                data-bs-target="#modalResiPengiriman"
+                                                data-order-id="{{ $order->order_id }}">
+                                                <i class="fas fa-check-circle me-1"></i>Konfirmasi Resi Pengiriman
+                                            </button>
                                         @endif
+
                                     </div>
                                 </div>
                             </div>
@@ -250,6 +267,31 @@
                         </div>
                     </form>
                 </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="modalResiPengiriman" tabindex="-1" aria-labelledby="modalResiLabel"
+            aria-hidden="true">
+            <div class="modal-dialog">
+                <form id="formResiPengiriman">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="modalResiLabel">Konfirmasi Resi Pengiriman</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="inputResi" class="form-label">Nomor Resi</label>
+                                <input type="text" class="form-control" id="inputResi" name="resi" required>
+                                <input type="hidden" id="inputOrderId" name="order_id">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" class="btn btn-primary">Kirim</button>
+                        </div>
+                    </div>
+                </form>
             </div>
         </div>
     @endsection
@@ -563,9 +605,9 @@
                     <label>Rating (1-5):</label>
                     <div class="rating-stars mb-2">
                         ${[5,4,3,2,1].map(i => `
-                                                                                                                                                                                                                                                                                                            <input type="radio" id="star${i}_${idx}" name="ratings[${item.product_id}][rating]" value="${i}">
-                                                                                                                                                                                                                                                                                                            <label for="star${i}_${idx}"><i class="fas fa-star"></i></label>
-                                                                                                                                                                                                                                                                                                        `).join('')}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <input type="radio" id="star${i}_${idx}" name="ratings[${item.product_id}][rating]" value="${i}">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <label for="star${i}_${idx}"><i class="fas fa-star"></i></label>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                `).join('')}
                     </div>
                     <label>Ulasan:</label>
                     <textarea name="ratings[${item.product_id}][review]" class="form-control mb-2" rows="2"></textarea>
@@ -720,6 +762,54 @@
                     return false;
                 });
 
+                $('#modalResiPengiriman').on('show.bs.modal', function(event) {
+                    var button = $(event.relatedTarget);
+                    var orderId = button.data('order-id');
+                    $('#selected_order_id').val(orderId);
+                });
+
+                $('#formResiPengiriman').submit(function(e) {
+                    e.preventDefault();
+                    let formData = new FormData(this);
+                    let orderId = $('#selected_order_id').val();
+
+                    // Add CSRF token to the FormData
+                    formData.append('_token', '{{ csrf_token() }}');
+
+                    $.ajax({
+                        url: '/orders/' + orderId + '/update-resi',
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function(response) {
+                            $('#modalResiPengiriman').modal('hide');
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil!',
+                                text: response.message,
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 2000
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        },
+                        error: function(xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: xhr.responseJSON.message ||
+                                    'Gagal mengupdate resi pengiriman',
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 3000
+                            });
+                        }
+                    });
+                });
             });
 
             function formatFileSize(bytes) {

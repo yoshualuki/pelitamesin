@@ -71,7 +71,7 @@ class Order extends Model
     const STATUS_COMPLETED = 'completed';
     const STATUS_CANCELLED = 'cancelled';
     const STATUS_WAITING_REFUND = 'waiting_refund';
-    const STATUS_PARTIALLY_REFUNDED = 'partially_refunded';
+    const STATUS_WAITING_RETURN = 'waiting_return';
     const STATUS_REFUNDED = 'refunded';
 
 
