@@ -304,7 +304,7 @@
 
                     <li>
                         <a href="{{ route('admin.reports.product-returns') }}"
-                            class="sidebar-link @if (session()->get('menu') == 'product-returns') active @endif">
+                            class="sidebar-link @if (session()->get('menu') == 'product-return') active @endif">
                             <i class="sidebar-icon fas fa-undo"></i>
                             <span class="sidebar-text">Product dikembalikan</span>
                         </a>

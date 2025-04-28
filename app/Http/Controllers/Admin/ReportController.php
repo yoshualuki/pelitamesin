@@ -124,7 +124,7 @@ class ReportController extends Controller implements HasMiddleware
     public function productReturns(Request $request)
     {
         session()->put('menu', 'product-return');
-        $returns = OrderRefund::with(['order', 'items.orderItem.product'])
+        $returns = OrderRefund::with(['order', 'items.orderItem.products'])
             ->where('status', '!=', OrderRefund::STATUS_REJECTED)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -132,7 +132,7 @@ class ReportController extends Controller implements HasMiddleware
         $totalRefunds = $returns->count();
         $totalRefundAmount = $returns->sum('amount');
 
-        return view('admin.reports.product-returns', [
+        return view('admin.reports.product-return', [
             'returns' => $returns,
             'totalRefunds' => $totalRefunds,
             'totalRefundAmount' => $totalRefundAmount
