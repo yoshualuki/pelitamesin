@@ -1,6 +1,4 @@
 @extends('layouts.admin')
-
-
 @section('content')
     <div class="container-fluid px-4">
         <div class="row mb-4">

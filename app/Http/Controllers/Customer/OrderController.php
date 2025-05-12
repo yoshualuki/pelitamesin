@@ -169,7 +169,7 @@ class OrderController extends Controller
 
         // Validasi status order
         if (!(
-            $order->status === 'shipped' ||
+            $order->status === 'shipped' || $order->status === 'completed' ||
             ($order->status === 'completed' && $order->courier === 'self_pickup'))) {
             return response()->json(['error' => 'Tidak dapat mengkonfirmasi pesanan yang belum dikirim'], 422);
         }
@@ -331,7 +331,8 @@ class OrderController extends Controller
         if (!$order->canRequestRefund()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Order tidak memenuhi syarat untuk pengembalian dana'
+                'message' => $this->completed_at->diffInDays(now())
+                // 'message' => 'Order tidak memenuhi syarat untuk pengembalian dana'
             ], 400);
         }
 
@@ -388,7 +389,7 @@ class OrderController extends Controller
             'user_id' => session()->get('user')->id,
             'amount' => $totalRefund,
             'status' => OrderRefund::STATUS_PENDING,
-            'reason' => $request->note,
+            'reason' => $request->note ?? '',
             'refund_method' => str_contains(strtolower($order->payment_method), 'virtual akun') ||
                 str_contains(strtolower($order->payment_method), 'bank transfer')
                 ? 'Bank Transfer'

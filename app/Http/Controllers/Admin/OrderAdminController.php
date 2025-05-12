@@ -318,7 +318,6 @@ class OrderAdminController extends Controller implements HasMiddleware
     {
         try {
             $order = Order::findOrFail($id);
-
             if (!in_array($order->status, ['waiting_payment', 'waiting_confirmation', 'processing'])) {
                 return response()->json([
                     'success' => false,

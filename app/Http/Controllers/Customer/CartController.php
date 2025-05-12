@@ -32,7 +32,6 @@ class CartController extends Controller
         if (!session()->get('user')) {
             return redirect()->route('login');
         }
-
         $cart = session()->get('cart', []);
         $products = [];
         $total = 0;

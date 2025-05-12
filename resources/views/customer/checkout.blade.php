@@ -3,7 +3,6 @@
 @section('content')
     <div class="container py-4">
         <h2 class="mb-4">Checkout</h2>
-
         <div class="row">
             <!-- Products Column -->
             <div class="col-lg-8 mb-4">
@@ -60,20 +59,17 @@
                         <form id="checkoutForm">
                             @csrf
                             <input type="hidden" id="shipping_cost" name="shipping_cost" value="0">
-
                             <div class="mb-3">
                                 <label for="name" class="form-label">Recipient Name <span
                                         class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="name" name="name" required>
                                 <div class="invalid-feedback">Please enter recipient name</div>
                             </div>
-
                             <div class="mb-3">
                                 <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
                                 <input type="email" class="form-control" id="email" name="email" required>
                                 <div class="invalid-feedback">Please enter a valid email</div>
                             </div>
-
                             <div class="mb-3">
                                 <label for="phone" class="form-label">Phone Number <span
                                         class="text-danger">*</span></label>
@@ -121,8 +117,7 @@
                                 </select>
                                 <div class="invalid-feedback">Please select courier</div>
                             </div>
-
-
+                            
                             <div class="mb-3" id="service-group">
                                 <label for="service" class="form-label">Service <span
                                         class="text-danger">*</span></label>

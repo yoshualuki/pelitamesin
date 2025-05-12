@@ -39,10 +39,10 @@
                     <input type="number" name="price" class="form-control" value="{{ old('price', $product->price) }}" required>
                 </div>
 
-                <div class="form-group mb-3">
+                {{-- <div class="form-group mb-3">
                     <label>Stok</label>
                     <input type="number" name="stock" class="form-control" value="{{ old('stock', $product->stock) }}" required>
-                </div>
+                </div> --}}
 
                 <div class="form-group mb-3">
                     <label>Berat (gram)</label>

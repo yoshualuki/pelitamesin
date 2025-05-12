@@ -400,7 +400,7 @@ class AdminController extends Controller implements HasMiddleware
 
     /**
      * Menampilkan daftar pesanan
-     */
+     */ 
     public function orders(Request $request)
     {
         $orders = Order::with('customer')
@@ -418,17 +418,17 @@ class AdminController extends Controller implements HasMiddleware
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        return view('admin.orders', compact('orders'));
+        return view('admin.orderAdmin', compact('orders'));
     }
 
     /**
      * Menampilkan detail pesanan
      */
-    public function showOrder($id)
-    {
-        $order = Order::with(['customer', 'orderItems.product'])->findOrFail($id);
-        return view('admin.order-detail', compact('order'));
-    }
+    // public function showOrder($id)
+    // {
+    //     $order = Order::with(['customer', 'orderItems.product'])->findOrFail($id);
+    //     return view('admin.order-Detail', compact('order'));
+    // }
 
     /**
      * Konfirmasi pesanan

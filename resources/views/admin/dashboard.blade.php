@@ -1,11 +1,9 @@
 @extends('layouts.admin')
-
 @section('content')
 <div class="container-fluid px-4">
     <!-- Page Heading -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">Dasbor Overview</h1>
-        
     </div>
 
     <!-- Summary Cards -->
@@ -153,14 +151,15 @@
                                     
                                     @switch($status['status'])
                                     @case('waiting_payment') Menunggu Pembayaran @break
-                                    @case('waiting_confirmation') Menunggu Konfirmasi @break
+                                    @case('waiti
+                                    ng_confirmation') Menunggu Konfirmasi @break
                                     @case('processing') Diproses @break
                                     @case('shipped') Dikirim @break
                                     @case('completed') Selesai @break
                                     @case('cancelled') Dibatalkan @break
                                     @case('partially_refunded') Pengembalian Sebagian @break
                                     @case('refunded') Dikembalikan @break
-                                    @default {{ ucfirst($status['status']) }} @endswitch
+                                    @default {{ ucfirst($status['status'])}} @endswitch
                                 </span>
                             </div>
                             <div class="font-weight-bold">

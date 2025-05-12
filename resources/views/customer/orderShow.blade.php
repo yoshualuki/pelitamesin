@@ -318,7 +318,7 @@
                             $order->status == 'shipped' &&
                                 $order->courier != 'self_pickup' &&
                                 $order->order_sent_at != null &&
-                                $order->order_sent_at->diffInDays(now()) >= 1)
+                                $order->order_sent_at->diffInDays(now()) >= 0)
                             <button class="btn btn-warning w-100 mb-2" data-bs-toggle="modal"
                                 data-bs-target="#returnRequestModal">
                                 <i class="fas fa-undo me-2"></i> Ajukan Retur
@@ -1318,6 +1318,7 @@
                         });
                     },
                     error: function(xhr) {
+                        
                         Swal.fire({
                             title: 'Gagal',
                             text: 'Terjadi kesalahan saat mengirim penilaian',

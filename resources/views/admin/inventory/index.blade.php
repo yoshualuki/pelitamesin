@@ -384,10 +384,11 @@
                                     <tr>
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                @if ($item->product->image_url ?? false)
-                                                    <img src="{{ $item->product->image_url }}"
+                                                @if ($item->product->image ?? false)
+                                                    <img src="{{ asset($item->product->image) }}"
                                                         class="img-profile rounded-circle mr-3" width="40"
                                                         height="40">
+                                                    
                                                 @else
                                                     <div class="img-profile rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mr-3"
                                                         style="width: 40px; height: 40px;">
@@ -405,10 +406,10 @@
                                         <td class="font-weight-bold text-danger">{{ $item->quantity }}</td>
                                         <td>10</td>
                                         <td>
-                                            <a href="{{ route('admin.inventory.edit', $item->id) }}"
+                                            {{-- <a href="{{ route('admin.inventory.edit', $item->id) }}"
                                                 class="btn btn-sm btn-warning">
                                                 <i class="fas fa-plus mr-1"></i> Restock
-                                            </a>
+                                            </a> --}}
                                         </td>
                                     </tr>
                                 @endforeach

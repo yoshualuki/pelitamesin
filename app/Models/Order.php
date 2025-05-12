@@ -122,8 +122,8 @@ class Order extends Model
     public function canRequestRefund()
     {
         return $this->status === self::STATUS_SHIPPED &&
-            $this->completed_at &&
-            $this->completed_at->diffInDays(now()) <= 7;
+            $this->order_sent_at &&
+            $this->order_sent_at->diffInDays(now()) <= 7;
     }
 
     public function getRefundableItems()

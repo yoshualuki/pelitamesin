@@ -34,10 +34,11 @@ class RefundController extends Controller implements HasMiddleware
         $refunds = OrderRefund::with(['order', 'user'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
-
         return view('admin.refund.index', compact('refunds'));
     }
 
+
+    
     public function showDetail($id)
     {
         $refund = OrderRefund::with(['order', 'user', 'items'])->findOrFail($id);

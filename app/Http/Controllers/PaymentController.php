@@ -31,10 +31,8 @@ class PaymentController extends Controller
 
     public function processPayment(Request $request)
     {
-
         try {
             $courier = $request->courier;
-
             if ($courier != 'self_pickup') {
                 $validated = $request->validate([
                     'name' => 'required',
