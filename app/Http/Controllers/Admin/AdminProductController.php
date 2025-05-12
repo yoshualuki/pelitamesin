@@ -50,7 +50,7 @@ class AdminProductController extends Controller implements HasMiddleware
         }
         
         return view('admin.product', [
-            'products' => $query->paginate(10),
+            'products' => $query->orderBy('stock', 'desc')->paginate(10),
             'totalProducts' => Product::count(),
             'outOfStock' => Product::where('stock', 0)->count(),
             'lowStock' => Product::where('stock', '<', 5)->where('stock', '>', 0)->count(),
@@ -81,7 +81,6 @@ class AdminProductController extends Controller implements HasMiddleware
             'name' => 'required|string|max:255',
             'price' => 'required|numeric|min:0',
             'weight' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
             'description' => 'required|string|max:2000',
             'brand' => 'required|string|max:255',
             'image' => 'required|image|mimes:jpeg,png,jpg,webp|max:2048'
@@ -120,7 +119,6 @@ class AdminProductController extends Controller implements HasMiddleware
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'price' => 'required|numeric|min:0',
-                'stock' => 'required|integer|min:0',
                 'weight' => 'required|numeric|min:0',
                 'description' => 'required|string|max:2000',
                 'brand' => 'required|string|max:255',
