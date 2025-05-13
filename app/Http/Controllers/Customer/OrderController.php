@@ -309,38 +309,49 @@ class OrderController extends Controller
 
     public function processRefund(Request $request, $orderId)
     {
-        $request->validate([
+        $items = collect($request->input('items', []))
+            ->filter(function ($item) {
+                return isset($item['selected']) && ($item['selected'] === true || $item['selected'] === 'on' || $item['selected'] === 1 || $item['selected'] === '1');
+            });
+
+        $rules = [
             'items' => 'required|array',
-            'items.*.selected' => 'required|accepted',
-            'items.*.quantity' => 'required|integer|min:1',
-            'items.*.condition' => 'required|in:new,opened,damaged,defective',
-            'items.*.reason' => 'required|string|max:500',
-            'items.*.photos' => 'required|array|min:1',
-            'items.*.photos.*' => 'image|mimes:jpg,jpeg,png|max:5120',
-            'items.*.videos' => 'required|array|min:1',
-            'items.*.videos.*' => 'mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/mpeg|max:15728640',
             'note' => 'nullable|string|max:1000',
             'bank_name' => 'required_if:payment_method,virtual_account,bank_transfer',
             'bank_account' => 'required_if:payment_method,virtual_account,bank_transfer',
             'account_name' => 'required_if:payment_method,virtual_account,bank_transfer'
-        ]);
+        ];
 
+        foreach ($items as $key => $item) {
+            $rules["items.$key.selected"] = 'required|accepted';
+            $rules["items.$key.quantity"] = 'required|integer|min:1';
+            $rules["items.$key.condition"] = 'required|in:new,opened,damaged,defective';
+            $rules["items.$key.reason"] = 'required|string|max:500';
+            $rules["items.$key.photos"] = 'required|array|min:1';
+            $rules["items.$key.photos.*"] = 'image|mimes:jpg,jpeg,png|max:5120';
+            $rules["items.$key.videos"] = 'required|array|min:1';
+            $rules["items.$key.videos.*"] = 'mimetypes:video/mp4,video/quicktime,video/x-msvideo,video/mpeg|max:15728640';
+        }
+
+        $request->validate($rules);
         $order = Order::findOrFail($orderId);
 
         // Check if order is eligible for refund
         if (!$order->canRequestRefund()) {
             return response()->json([
                 'success' => false,
-                'message' => $this->completed_at->diffInDays(now())
-                // 'message' => 'Order tidak memenuhi syarat untuk pengembalian dana'
+                'message' => 'Order tidak memenuhi syarat untuk pengembalian dana'
             ], 400);
         }
 
         // Calculate total refund amount
         $totalRefund = 0;
         $refundItems = [];
+        $filteredItems = collect($request->items)->filter(function ($item) {
+            return !empty($item['reason']);
+        });
 
-        foreach ($request->items as $itemId => $itemData) {
+        foreach ($filteredItems as $itemId => $itemData) {
             $orderItem = OrderDetail::find($itemId);
 
             if (!$orderItem || $orderItem->order_id !== $order->order_id) {
