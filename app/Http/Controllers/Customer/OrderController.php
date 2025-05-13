@@ -62,7 +62,7 @@ class OrderController extends Controller
         $status = request('status');
         $user = session()->get('user');
 
-        app('debugbar')->info($user->toArray());
+        // app('debugbar')->info($user->toArray());
 
         $orders = Order::with(['user', 'items.products'])
             ->when(request('status'), function ($query) {
@@ -202,19 +202,23 @@ class OrderController extends Controller
                     'review' => $productRating['review'] ?? null,
                 ]);
 
+
+                // Handle media upload
+                if ($request->hasFile("ratings.{$item->product_id}.media")) {
+                    // app('debugbar')->info($request->file("ratings.{$item->product_id}.media"));
+                    foreach ($request->file("ratings.{$item->product_id}.media") as $file) {
+                        // app('debugbar')->info($file);
+                        $path = $file->store('ratings', 'public');
+                        $rating->media()->create(['file_path' => Storage::url($path)]);
+                    }
+                }
+
+
                 $product = $item->products;
                 $totalRating = $product->average_rating * $product->rating_count;
                 $product->rating_count += 1;
                 $product->average_rating = ($totalRating + $productRating['rating']) / $product->rating_count;
                 $product->save();
-
-                // Handle media upload
-                if ($request->hasFile("ratings.{$item->product_id}.media")) {
-                    foreach ($request->file("ratings.{$item->product_id}.media") as $file) {
-                        $path = $file->store('ratings', 'public');
-                        $rating->media()->create(['file_path' => Storage::url($path)]);
-                    }
-                }
             }
 
             DB::commit();
@@ -442,7 +446,7 @@ class OrderController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            app('debugbar')->error('Refund processing error: ' . $e->getMessage());
+            // app('debugbar')->error('Refund processing error: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
