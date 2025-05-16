@@ -7,10 +7,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-class ContactpController extends Controller
+class ContactController extends Controller
 {
-
-    
     public function index(Request $request)
     {
         return view('kontak');
@@ -29,4 +27,4 @@ class ContactpController extends Controller
 
         return redirect()->route('profile.edit')->with('success', 'Profil berhasil diperbarui');
     }
-} 
+}

@@ -274,6 +274,14 @@
                     </li>
                 @endif
 
+                <li>
+                    <a href="{{ route('admin.instagram.create') }}"
+                        class="sidebar-link @if (session()->get('menu') == 'instagram') active @endif">
+                        <i class="sidebar-icon fas fa-warehouse"></i>
+                        <span class="sidebar-text">Post Instagram</span>
+                    </a>
+                </li>
+
                 @if (session()->get('user')->role == 'owner')
                     <li class="sidebar-header">Reports</li>
 

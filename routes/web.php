@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\OrderAdminController;
 use App\Http\Controllers\Admin\InventoryController;
+use App\Http\Controllers\Admin\InstagramPostController;
 use App\Http\Controllers\Auth\PasswordResetController;
 
 
@@ -162,8 +163,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::post('/refund/{id}/approve', [RefundController::class, 'approve'])->name('refund.approve');
     Route::post('/refund/{id}/reject', [RefundController::class, 'reject'])->name('refund.reject');
 
-    // Reports (Owner Only)
+    Route::get('/instagram/create', [InstagramPostController::class, 'create'])->name('instagram.create');
+    Route::post('/instagram/post', [InstagramPostController::class, 'store'])->name('instagram.post');
 
+    // Reports (Owner Only)
     Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('daily-transactions', [ReportController::class, 'dailyTransactions'])->name('daily-transactions');
         Route::get('low-stock', [ReportController::class, 'lowStock'])->name('low-stock');
