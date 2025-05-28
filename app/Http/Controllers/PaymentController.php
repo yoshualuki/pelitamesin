@@ -8,11 +8,14 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Midtrans\Config;
 use Midtrans\Snap;
-use Illuminate\Support\Facades\Http;
 use App\Models\Order;
 use App\Models\OrderDetail;
 use App\Models\Product;
 use App\Models\User;
+use App\Mail\OrderPaymentSuccess;
+use App\Mail\NewOrder;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\OrderWaitingPayment;
 
 class PaymentController extends Controller
 {
@@ -197,6 +200,11 @@ class PaymentController extends Controller
 
             DB::commit();
 
+            // Notify user payment success
+            Mail::to($order->user->email)->send(
+                new OrderWaitingPayment($order->user, $order)
+            );
+
             session()->remove('cart');
             return response()->json([
                 'snapToken' => $snapToken,
@@ -267,9 +275,17 @@ class PaymentController extends Controller
             case 'capture':
             case 'settlement':
                 $transaction->status = 'waiting_confirmation';
+
+                // Notify user payment success
+                Mail::to($transaction->user->email)->send(
+                    new OrderPaymentSuccess($transaction->user, $transaction)
+                );
+                Mail::to('pelitamesinjahit@gmail.com')->send(
+                    new NewOrder($transaction->user, $transaction)
+                );
                 break;
             case 'pending':
-                $transaction->status = 'pending';
+                $transaction->status = 'waiting_payment';
                 break;
             case 'deny':
             case 'cancel':
@@ -286,9 +302,7 @@ class PaymentController extends Controller
                 break;
         }
 
-        // Simpan data tambahan jika diperlukan
-        // $transaction->payment_method = $data['payment_type'] ?? null;
-        // $transaction->transaction_time = $data['transaction_time'] ?? null;
+
         $transaction->save();
 
         app('debugbar')->info('Transaction updated', ['order_id' => $transaction->order_id, 'status' => $transaction->status]);

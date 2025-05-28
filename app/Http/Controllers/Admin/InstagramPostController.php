@@ -26,8 +26,9 @@ class InstagramPostController extends Controller
 
         try {
             // Upload image to temporary storage
-            $imagePath = $request->file('image')->store('public/instagram/temp');
+            $imagePath = $request->file('image')->store('instagram', 'public');
             $publicImageUrl = Storage::url($imagePath);
+            app('debugbar')->info('Image URL: ' . $publicImageUrl);
 
             // For production, you should upload to a CDN or permanent storage
             // This example uses the temporary URL for demonstration

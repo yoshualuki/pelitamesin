@@ -153,7 +153,7 @@
                             <li class="mb-2">
                                 <i class="fas fa-calendar me-2 text-muted"></i>
                                 <strong>Tanggal:</strong>
-                                {{ $order->payment_date ? $order->payment_date->format('d M Y H:i') : '-' }}
+                                {{ Carbon\Carbon::parse($order->payment_date)->format('d M Y H:i') }}
                             </li>
                             <li>
                                 <i class="fas fa-hashtag me-2 text-muted"></i>

@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Support\Facades\Session;
+use Carbon\Carbon;
 
 
 class OrderAdminController extends Controller implements HasMiddleware
@@ -48,6 +49,14 @@ class OrderAdminController extends Controller implements HasMiddleware
             })
             ->when($request->status && $request->status != 'all', function ($query) use ($request) {
                 $query->where('status', $request->status);
+            })
+            ->when($request->start_date && $request->end_date, function ($query) use ($request) {
+                $startDate = \Carbon\Carbon::createFromFormat('d/m/Y', $request->start_date)->format('Y-m-d');
+                $endDate = \Carbon\Carbon::createFromFormat('d/m/Y', $request->end_date)->format('Y-m-d');
+                $query->whereBetween('created_at', [
+                    $startDate . ' 00:00:00',
+                    $endDate . ' 23:59:59'
+                ]);
             })
             ->orderBy('created_at', 'desc')
             ->paginate(10);

@@ -9,7 +9,9 @@
                         <div class="d-flex">
                             <div class="input-group me-3" style="width: 250px;">
                                 <span class="input-group-text bg-white"><i class="fas fa-calendar-alt"></i></span>
-                                <input type="text" class="form-control date-range-picker" placeholder="Filter tanggal">
+                                <input type="text" class="form-control date-range-picker" name="daterange"
+                                    placeholder="Filter tanggal"
+                                    value="{{ request('start_date') }} {{ request('end_date') && request('start_date') !== request('end_date') ? ' - ' . request('end_date') : '' }}" />
                             </div>
                             <div class="dropdown">
                                 <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="filterDropdown"
@@ -191,12 +193,12 @@
                                                     </button>
                                                     <ul class="dropdown-menu dropdown-menu-end"
                                                         aria-labelledby="actionDropdown{{ $order->order_id }}">
-                                                        <li>
+                                                        {{-- <li>
                                                             <button class="dropdown-item view-detail-btn"
                                                                 data-id="{{ $order->order_id }}">
                                                                 <i class="fas fa-eye me-2"></i> Detail
                                                             </button>
-                                                        </li>
+                                                        </li> --}}
                                                         <li>
                                                             <a class="dropdown-item"
                                                                 href="{{ route('admin.orders.invoice', $order->order_id) }}"
@@ -470,57 +472,47 @@
 
     @section('scripts')
         <script>
-            $(document).ready(function() {
-                // Initialize toasts
-                const successToast = new bootstrap.Toast(document.getElementById('successToast'));
-                const errorToast = new bootstrap.Toast(document.getElementById('errorToast'));
-                // Pastikan daterangepicker tersedia
-                if (typeof $.fn.daterangepicker === 'function') {
-                    $('.date-range-picker').daterangepicker({
-                        opens: 'left',
-                        autoUpdateInput: false,
-                        locale: {
-                            format: 'DD/MM/YYYY',
-                            applyLabel: 'Terapkan',
-                            cancelLabel: 'Batal',
-                            fromLabel: 'Dari',
-                            toLabel: 'Sampai',
-                            customRangeLabel: 'Custom',
-                            daysOfWeek: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
-                            monthNames: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-                                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-                            ],
-                            firstDay: 1
-                        }
+            $(function() {
+                $('input[name="daterange"]').daterangepicker({
+                    opens: 'left',
+                    autoUpdateInput: false,
+                    locale: {
+                        format: 'DD/MM/YYYY',
+                        applyLabel: 'Terapkan',
+                        cancelLabel: 'Batal',
+                        fromLabel: 'Dari',
+                        toLabel: 'Sampai',
+                        customRangeLabel: 'Custom',
+                        daysOfWeek: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
+                        monthNames: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+                        ],
+                        firstDay: 1
+                    }
+                });
+
+                $('input[name="daterange"]').on('apply.daterangepicker', function(ev, picker) {
+                    $(this).val(picker.startDate.format('DD/MM/YYYY') + ' - ' + picker.endDate.format(
+                        'DD/MM/YYYY'));
+
+                    // Kirim filter ke server
+                    const dates = {
+                        start_date: picker.startDate.format('DD/MM/YYYY'),
+                        end_date: picker.endDate.format('DD/MM/YYYY')
+                    };
+
+                    // Reload table dengan parameter filter
+                    reloadOrdersTable(dates);
+                });
+
+                $('input[name="daterange"]').on('cancel.daterangepicker', function(ev, picker) {
+                    $(this).val('');
+
+                    // Hapus filter tanggal
+                    reloadOrdersTable({
+                        clear_date_filter: true
                     });
-
-                    $('.date-range-picker').on('apply.daterangepicker', function(ev, picker) {
-                        $(this).val(picker.startDate.format('DD/MM/YYYY') + ' - ' + picker.endDate.format(
-                            'DD/MM/YYYY'));
-
-                        // Kirim filter ke server
-                        const dates = {
-                            start_date: picker.startDate.format('YYYY-MM-DD'),
-                            end_date: picker.endDate.format('YYYY-MM-DD')
-                        };
-
-                        // Reload table dengan parameter filter
-                        reloadOrdersTable(dates);
-                    });
-
-                    $('.date-range-picker').on('cancel.daterangepicker', function(ev, picker) {
-                        $(this).val('');
-
-                        // Hapus filter tanggal
-                        reloadOrdersTable({
-                            clear_date_filter: true
-                        });
-                    });
-                } else {
-                    console.error('DateRangePicker not loaded!');
-                    // Fallback: tampilkan input biasa
-                    $('.date-range-picker').attr('type', 'text');
-                }
+                });
 
                 function reloadOrdersTable(params = {}) {
                     // Gabungkan dengan filter yang ada
@@ -542,11 +534,14 @@
                     // Reload halaman dengan parameter baru
                     window.location.search = queryParams.toString();
 
-                    // Atau gunakan AJAX untuk update table saja:
-                    // $.get(window.location.pathname + '?' + queryParams.toString(), function(data) {
-                    //     $('#ordersTable').html($(data).find('#ordersTable').html());
-                    // });
                 }
+            });
+            $(document).ready(function() {
+                // Initialize toasts
+                const successToast = new bootstrap.Toast(document.getElementById('successToast'));
+                const errorToast = new bootstrap.Toast(document.getElementById('errorToast'));
+                // Pastikan daterangepicker tersedia
+
 
                 const orderDetailModal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
                 let currentOrderId = null;

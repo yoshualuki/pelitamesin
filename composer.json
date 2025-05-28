@@ -11,9 +11,11 @@
     "require": {
         "php": "^8.2",
         "barryvdh/laravel-dompdf": "^3.1",
+        "filament/filament": "^3.3",
         "illuminate/support": "*",
         "laravel/framework": "12.*",
         "laravel/tinker": "^2.0",
+        "mailersend/laravel-driver": "^2.9",
         "midtrans/midtrans-php": "^2.6.1",
         "synergitech/laravel-alert": "^2.0"
     },

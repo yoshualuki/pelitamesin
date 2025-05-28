@@ -20,6 +20,9 @@ use App\Http\Controllers\Admin\OrderAdminController;
 use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\InstagramPostController;
 use App\Http\Controllers\Auth\PasswordResetController;
+use App\Models\Order;
+use App\Mail\OrderWaitingPayment;
+use Illuminate\Support\Facades\Mail;
 
 
 // Public Routes
@@ -110,6 +113,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
 });
+
+// routes/web.php (dev-only)
+if (app()->isLocal()) {
+    Route::get('/mail/preview/{type}', function ($type) {
+        $order = Order::latest()->first();
+        Mail::to('lukaskris12@gmail.com')->send(new OrderWaitingPayment($order->user, $order));
+        return response()->json(['message' => 'Email sent successfully', 'order' => $order]);
+    });
+}
 
 
 Route::prefix('admin')->name('admin.')->group(function () {

@@ -49,7 +49,9 @@ return [
             'port' => '3306',
             'database' => 'pelita_mesin_jahit',
             'username' => 'root',
-            'password' => '',
+            // 'database' => 'pelitam2_mesinjahit',
+            // 'username' => 'pelitam2_root',
+            // 'password' => 'pelitamesinjahit123',
             'unix_socket' => '',
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
@@ -145,7 +147,7 @@ return [
         'client' => 'phpredis',
         'options' => [
             'cluster' => 'redis',
-            'prefix' => Str::slug('laravel', '_').'_database_',
+            'prefix' => Str::slug('laravel', '_') . '_database_',
             'persistent' => false,
         ],
         'default' => [

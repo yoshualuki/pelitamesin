@@ -24,12 +24,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if($this->app->environment('production')) {
+        if ($this->app->environment('production')) {
             \URL::forceScheme('https');
         }
-        
+        Blade::componentNamespace('Mail\\Views', 'mail');
         Paginator::useBootstrap();
-        
+
         Blade::directive('money', function (string $expression) {
             return "<?php echo 'Rp ' . number_format($expression, 0, ',', '.'); ?>";
         });
