@@ -34,7 +34,7 @@ class NewOrder extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'mail.user.new-order',
+            view: 'mail.admin.new-order',
         );
     }
     /**

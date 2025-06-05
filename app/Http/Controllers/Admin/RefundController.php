@@ -9,6 +9,7 @@ use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
+use App\Models\Product;
 
 class RefundController extends Controller implements HasMiddleware
 {
@@ -38,7 +39,7 @@ class RefundController extends Controller implements HasMiddleware
     }
 
 
-    
+
     public function showDetail($id)
     {
         $refund = OrderRefund::with(['order', 'user', 'items'])->findOrFail($id);
@@ -100,6 +101,26 @@ class RefundController extends Controller implements HasMiddleware
             $refund->order->update([
                 'status' => 'refunded'
             ]);
+            $refundDetail = $refund->items;
+            // app('debugbar')->info($refundDetail);
+            foreach ($refundDetail as $item) {
+                // app('debugbar')->info('Masuk sini');
+                $productId = $item->orderItem->product_id;
+                // app('debugbar')->info($productId);
+                $product = Product::find($productId);
+                // app('debugbar')->info($product);
+                $product->stock += $item->quantity;
+                $product->save();
+
+                // 2b. Kurangi stock product di inventory dengan metode FIFO
+                $inventory = $product->inventories()->orderBy('created_at', 'asc')->first();
+                // app('debugbar')->info($inventory);
+                if ($inventory) {
+                    $inventory->quantity += $item->quantity;
+                    $inventory->save();
+                }
+            }
+
             DB::commit();
 
             if ($request->ajax()) {
@@ -107,6 +128,7 @@ class RefundController extends Controller implements HasMiddleware
             }
             return redirect()->route('admin.refund')->with('success', 'Refund berhasil disetujui');
         } catch (\Exception $e) {
+            app('debugbar')->error($e);
             DB::rollBack();
             if ($request->ajax()) {
                 return response()->json(['error' => 'Terjadi kesalahan saat menyetujui refund'], 500);

@@ -47,7 +47,9 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => App\Models\User::class,
-        ]
+        ],
+
+        Barryvdh\Debugbar\ServiceProvider::class,
     ],
 
 

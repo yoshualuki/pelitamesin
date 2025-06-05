@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\OrderAdminController;
 use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\InstagramPostController;
+use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Models\Order;
 use App\Mail\OrderWaitingPayment;
@@ -129,10 +130,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard/chart-data', [AdminController::class, 'chartData'])
         ->name('admin.dashboard.chart');
 
-    Route::get('/customer', [AdminUserController::class, 'index'])->name('customer');
-    Route::get('/customer/edit', [AdminController::class, 'customer'])->name('customer.edit');
-    Route::get('/customer/store', [AdminController::class, 'customer'])->name('customer.store');
-    Route::get('/customer/destroy', [AdminController::class, 'customer'])->name('customer.destroy');
+    // Route::get('/customer', [AdminUserController::class, 'index'])->name('customer');
+    // Route::get('/customer/edit', [AdminController::class, 'customer'])->name('customer.edit');
+    // Route::get('/customer/store', [AdminController::class, 'customer'])->name('customer.store');
+    // Route::get('/customer/update', [AdminController::class, 'customer'])->name('customer.store');
+    // Route::get('/customer/destroy', [AdminController::class, 'customer'])->name('customer.destroy');
+
+    Route::get('/customer', [CustomerController::class, 'index'])->name('customer');
+    Route::post('/customer', [CustomerController::class, 'store'])->name('customer.store');
+    Route::get('/customer/{id}/edit', [CustomerController::class, 'edit'])->name('customer.edit');
+    Route::put('/customer/{id}', [CustomerController::class, 'update'])->name('customer.update');
+    Route::delete('/customer/{id}', [CustomerController::class, 'destroy'])->name('customer.destroy');
 
     // user admin management
     Route::get('/useradmin', [AdminUserController::class, 'adminIndex'])->name('useradmin.index');

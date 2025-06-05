@@ -8,12 +8,13 @@ use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    use Notifiable; 
+    use Notifiable;
 
     protected $fillable = [
         'name',
         'email',
         'password',
+        'active',
     ];
 
     protected $hidden = [
@@ -39,5 +40,4 @@ class User extends Authenticatable
             $user->active = true;
         });
     }
-
 }
