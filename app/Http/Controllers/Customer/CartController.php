@@ -227,6 +227,7 @@ class CartController extends Controller
                 $request->courier
             );
 
+            Log::error('Response ' . json_encode($response));
             if (!isset($response['rajaongkir']['results'][0]['costs'])) {
                 throw new \Exception('Invalid shipping cost response');
             }
@@ -240,7 +241,8 @@ class CartController extends Controller
             Log::error('Error calculating shipping cost: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal menghitung ongkos kirim'
+                'message' => $e->getMessage()
+                // 'message' => 'Gagal menghitung ongkos kirim'
             ], 500);
         }
     }

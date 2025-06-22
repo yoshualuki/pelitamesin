@@ -10,6 +10,7 @@ use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
 use App\Models\Product;
+use App\Models\RefundInventory;
 
 class RefundController extends Controller implements HasMiddleware
 {
@@ -101,6 +102,22 @@ class RefundController extends Controller implements HasMiddleware
             $refund->order->update([
                 'status' => 'refunded'
             ]);
+
+            $refundDetail = $refund->items;
+            foreach ($refundDetail as $item) {
+                $productId = $item->orderItem->product_id;
+                // buat refund stock
+                RefundInventory::create([
+                    'order_id' => $refund->order_id,
+                    'order_detail_id' => $item->order_detail_id,
+                    'refund_id' => $refund->refund_id,
+                    'product_id' => $item->orderItem->product_id,
+                    'quantity' => $item->orderItem->quantity,
+                    'created_at' => now(),
+                    'status' => 0,
+                ]);
+            }
+
             $refundDetail = $refund->items;
             // app('debugbar')->info($refundDetail);
             foreach ($refundDetail as $item) {

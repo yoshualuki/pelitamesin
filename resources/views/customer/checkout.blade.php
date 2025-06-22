@@ -59,7 +59,15 @@
                         <form id="checkoutForm">
                             @csrf
                             <input type="hidden" id="shipping_cost" name="shipping_cost" value="0">
-                            <div class="mb-3">
+                            <input type="hidden" class="form-control" id="name" name="name">
+                            <input type="hidden" class="form-control" id="email" name="email">
+                            <input type="hidden" class="form-control" id="phone" name="phone">
+                            <input type="hidden" class="form-control" id="address" name="address">
+                            <input type="hidden" class="form-control" id="province" name="province">
+                            <input type="hidden" class="form-control" id="city" name="city">
+                            <p>Alamat: <br>{{ session()->get('user')->address }}, {{ session()->get('user')->city }}
+                                {{ session()->get('user')->province }}<br>{{ session()->get('user')->phone }}</p>
+                            {{-- <div class="mb-3">
                                 <label for="name" class="form-label">Recipient Name <span
                                         class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="name" name="name" required>
@@ -81,10 +89,10 @@
                                 <label for="address" class="form-label">Address <span class="text-danger">*</span></label>
                                 <textarea class="form-control" id="address" name="address" rows="3" required></textarea>
                                 <div class="invalid-feedback">Please enter your address</div>
-                            </div>
+                            </div> --}}
 
                             <!-- Dynamic Location Selection -->
-                            <div class="mb-3">
+                            {{-- <div class="mb-3">
                                 <label for="province" class="form-label">Province<span class="text-danger">*</span></label>
                                 <select class="form-select" id="province" name="province" required>
                                     <option value="">Select Province</option>
@@ -105,7 +113,7 @@
                                     <option value="">Select City</option>
                                 </select>
                                 <div class="invalid-feedback">Please select city</div>
-                            </div>
+                            </div> --}}
 
                             <div class="mb-3">
                                 <label for="courier" class="form-label">Courier <span class="text-danger">*</span></label>
@@ -117,10 +125,9 @@
                                 </select>
                                 <div class="invalid-feedback">Please select courier</div>
                             </div>
-                            
+
                             <div class="mb-3" id="service-group">
-                                <label for="service" class="form-label">Service <span
-                                        class="text-danger">*</span></label>
+                                <label for="service" class="form-label">Service <span class="text-danger">*</span></label>
                                 <select class="form-select" id="service" name="service" disabled required>
                                     <option value="">Select Service</option>
                                 </select>
@@ -162,6 +169,8 @@
             $('#email').val(`{{ session()->get('user')->email }}`);
             $('#phone').val(`{{ session()->get('user')->phone }}`);
             $('#address').val(`{{ session()->get('user')->address }}`);
+            $('#city').val(`{{ session()->get('user')->city_id }}`);
+            $('#province').val(`{{ session()->get('user')->province_id }}`);
             // $('#province').val(`{{ session()->get('user')->province }}`);
             // Load cities based on selected province
             // If user has saved province and city, load cities and set selected city
@@ -169,7 +178,7 @@
             const savedCityId = `{{ session()->get('user')->city_id }}`;
             const savedCity = `{{ session()->get('user')->city }}`;
             if (savedProvinceId && savedCityId) {
-                $('#city').prop('disabled', true).html('<option value="">Loading...</option>');
+                // $('#city').prop('disabled', true).html('<option value="">Loading...</option>');
                 if (savedCity.toLowerCase().includes('surabaya')) {
                     $('#courier option[value="self_pickup"]').removeClass('d-none');
                 } else {
@@ -179,14 +188,14 @@
                         $('#courier').val('');
                     }
                 }
-                $.get(`/cart/cities?province_id=${savedProvinceId}`, function(data) {
-                    let options = '<option value="">Select City</option>';
-                    data.data.forEach(city => {
-                        options +=
-                            `<option value="${city.city_id}"${city.city_id == savedCityId ? ' selected' : ''}>${city.city_name}</option>`;
-                    });
-                    $('#city').html(options).prop('disabled', false);
-                });
+                // $.get(`/cart/cities?province_id=${savedProvinceId}`, function(data) {
+                //     let options = '<option value="">Select City</option>';
+                //     data.data.forEach(city => {
+                //         options +=
+                //             `<option value="${city.city_id}"${city.city_id == savedCityId ? ' selected' : ''}>${city.city_name}</option>`;
+                //     });
+                //     $('#city').html(options).prop('disabled', false);
+                // });
             }
 
             // Form validation
@@ -232,41 +241,41 @@
             });
 
             // Province change event
-            $('#province').on('change', function() {
-                $('#city').prop('disabled', true);
-                $('#service').prop('disabled', true);
-                resetShippingCost();
+            // $('#province').on('change', function() {
+            //     $('#city').prop('disabled', true);
+            //     $('#service').prop('disabled', true);
+            //     resetShippingCost();
 
-                const provinceId = $(this).val();
+            //     const provinceId = $(this).val();
 
-                $('#city').html('<option value="">Loading...</option>');
+            //     $('#city').html('<option value="">Loading...</option>');
 
-                if (provinceId) {
-                    $.get(`/cart/cities?province_id=${provinceId}`, function(data) {
-                        let options = '<option value="">Select City</option>';
-                        data.data.forEach(city => {
-                            options +=
-                                `<option value="${city.city_id}">${city.city_name}</option>`;
-                        });
-                        $('#city').html(options).prop('disabled', false);
-                    }).fail(function() {
-                        $('#city').html('<option value="">Error loading cities</option>');
-                    });
-                }
-            });
+            //     if (provinceId) {
+            //         $.get(`/cart/cities?province_id=${provinceId}`, function(data) {
+            //             let options = '<option value="">Select City</option>';
+            //             data.data.forEach(city => {
+            //                 options +=
+            //                     `<option value="${city.city_id}">${city.city_name}</option>`;
+            //             });
+            //             $('#city').html(options).prop('disabled', false);
+            //         }).fail(function() {
+            //             $('#city').html('<option value="">Error loading cities</option>');
+            //         });
+            //     }
+            // });
 
             // City change event
-            $('#city').on('change', function() {
-                $('#service').prop('disabled', true);
-                var selectedCityText = $('#city option:selected').text().toLowerCase();
-                if (selectedCityText.includes('surabaya')) {
-                    $('#courier option[value="self_pickup"]').removeClass('d-none');
-                } else {
-                    // Hide and reset if not Surabaya
-                    $('#courier option[value="self_pickup"]').addClass('d-none');
-                }
-                resetShippingCost();
-            });
+            // $('#city').on('change', function() {
+            //     $('#service').prop('disabled', true);
+            //     var selectedCityText = $('#city option:selected').text().toLowerCase();
+            //     if (selectedCityText.includes('surabaya')) {
+            //         $('#courier option[value="self_pickup"]').removeClass('d-none');
+            //     } else {
+            //         // Hide and reset if not Surabaya
+            //         $('#courier option[value="self_pickup"]').addClass('d-none');
+            //     }
+            //     resetShippingCost();
+            // });
 
             // Courier change event
             $('#courier').on('change', function() {
@@ -283,8 +292,8 @@
             });
 
             // City and Courier change - calculate shipping
-            $('#city, #courier').on('change', function() {
-                if ($('#city').val() && $('#courier').val()) {
+            $('#courier').on('change', function() {
+                if ($('#courier').val()) {
                     calculateShippingCost();
                 }
             });
@@ -314,7 +323,6 @@
             function calculateShippingCost() {
                 const cityId = $('#city').val();
                 const courier = $('#courier').val();
-
                 $('#service').html('<option value="">Loading...</option>');
 
                 $.get(`/cart/shipping-cost`, {

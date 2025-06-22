@@ -38,28 +38,15 @@ class PaymentController extends Controller
             $courier = $request->courier;
             if ($courier != 'self_pickup') {
                 $validated = $request->validate([
-                    'name' => 'required',
-                    'email' => 'required|email',
-                    'phone' => 'required',
-                    'address' => 'required',
-                    'province' => 'required',
-                    'city' => 'required',
                     'courier' => 'required',
                     'service' => 'required',
                     'shipping_cost' => 'required|numeric'
                 ]);
             } else {
                 $validated = $request->validate([
-                    'name' => 'required',
-                    'email' => 'required|email',
-                    'phone' => 'required',
-                    'address' => 'required',
-                    'province' => 'required',
-                    'city' => 'required',
                     'courier' => 'required',
                 ]);
             }
-
 
             $cart = session()->get('cart', []);
             $user = session()->get('user');
@@ -77,29 +64,6 @@ class PaymentController extends Controller
 
             DB::beginTransaction();
             $user = User::find($user->id);
-            if (!$user) {
-                DB::rollBack();
-                return response()->json(['error' => 'User not found'], 404);
-            }
-            // Update informasi user
-            if ($user->phone != $request->phone) {
-                $user->phone = $request->phone;
-            }
-            if ($user->address != $request->address) {
-                $user->address = $request->address;
-            }
-            if ($user->province != $request->province) {
-                $user->province = $request->province;
-                $user->province_id = $request->province_id;
-            }
-            if ($user->city != $request->city) {
-                $user->city = $request->city;
-                $user->city_id = $request->city_id;
-            }
-            $user->save();
-
-            // update session
-            session()->put('user', $user);
 
             // 1. Buat order
             $order = Order::create([
@@ -112,12 +76,12 @@ class PaymentController extends Controller
                 'status' => 'waiting_payment',
                 'weight' => $totalWeight,
                 'final_amount' => $total,
-                'recipient_name' => $request->name,
-                'recipient_email' => $request->email,
-                'recipient_phone' => $request->phone,
-                'shipping_address' => $request->address,
-                'province' => $request->province,
-                'city' => $request->city,
+                'recipient_name' => $user->name,
+                'recipient_email' => $user->email,
+                'recipient_phone' => $user->phone,
+                'shipping_address' => $user->address,
+                'province' => $user->province,
+                'city' => $user->city,
                 'estimated_delivery' => $request->estimated_delivery,
                 'waiting_payment_at' => now()
             ]);
@@ -174,17 +138,17 @@ class PaymentController extends Controller
                 ],
                 'item_details' => $itemDetails,
                 'customer_details' => [
-                    'first_name' => $request->name,
-                    'email' => $request->email,
-                    'phone' => $request->phone,
+                    'first_name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
                     'billing_address' => [
-                        'address' => $request->address,
-                        'city' => $request->city,
+                        'address' => $user->address,
+                        'city' => $user->city,
                         'postal_code' => '',
                     ],
                     'shipping_address' => [
-                        'address' => $request->address,
-                        'city' => $request->city,
+                        'address' => $user->address,
+                        'city' => $user->city,
                         'postal_code' => '',
                     ]
                 ],

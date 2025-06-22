@@ -265,6 +265,13 @@
                         <span class="sidebar-text">Refund</span>
                     </a>
                 </li>
+                <li>
+                    <a href="{{ route('admin.refund-inventory') }}"
+                        class="sidebar-link @if (session()->get('menu') == 'refund_inventory') active @endif">
+                        <i class="sidebar-icon fas fa-undo-alt"></i>
+                        <span class="sidebar-text">Refund Inventory</span>
+                    </a>
+                </li>
                 @if (session()->get('user')->role == 'owner')
                     <li>
                         <a href="{{ route('admin.inventory') }}"

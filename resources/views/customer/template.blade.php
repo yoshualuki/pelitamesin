@@ -289,11 +289,11 @@
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link @if (request()->is('/')) active @endif"
-                            href="{{ url('/') }}">Beranda</a>
+                            href="{{ url('/') }}"><i class="fas fa-home"></i> Beranda</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link @if (request()->is('products*')) active @endif"
-                            href="{{ route('products') }}">Produk</a>
+                            href="{{ route('products') }}"><i class="fas fa-box"></i> Produk</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link @if (request()->is('cart*')) active @endif" href="{{ route('cart') }}"
@@ -354,9 +354,28 @@
                     </div>
                 @else
                     @if (session()->get('user'))
-                        <a href="{{ route('logout') }}" class="btn btn-outline-primary me-2">
-                            <i class="fas fa-sign-out-alt me-1"></i> Logout
-                        </a>
+                        <div class="dropdown">
+                            <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle"
+                                id="userDropdown" data-bs-toggle="dropdown">
+                                <img src="{{ 'https://sbcf.fr/wp-content/uploads/2018/03/sbcf-default-avatar.png' }}"
+                                    alt="User" class="rounded-circle me-2" width="32" height="32">
+                                <span>{{ session()->get('user')->name }}</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{{ route('customer.profile') }}"><i
+                                            class="fas fa-user me-2"></i> Profil Saya</a></li>
+                                <li>
+                                    <a class="dropdown-item text-danger" href="{{ route('logout') }}"
+                                        onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                        <i class="fas fa-sign-out-alt me-2"></i> Logout
+                                    </a>
+                                    <form id="logout-form" action="{{ route('logout') }}" method="GET"
+                                        class="d-none">
+                                        @csrf
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
                     @else
                         <div class="d-flex">
                             <a href="{{ route('login') }}" class="btn btn-outline-primary me-2">
@@ -386,7 +405,8 @@
                     <p>Pelita Mesin Jahit - Toko mesin jahit terpercaya sejak 1980 dengan berbagai pilihan merek dan
                         model terbaik.</p>
                     <div class="mt-3">
-                        <img src="{{ asset('images/logo.png') }}" alt="Pelita Mesin Jahit" style="max-height: 50px;">
+                        <img src="{{ asset('images/logo.png') }}" alt="Pelita Mesin Jahit"
+                            style="max-height: 50px;">
                     </div>
                 </div>
 

@@ -14,12 +14,14 @@ use App\Http\Controllers\Customer\OrderController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Customer\ReturCustController;
+use App\Http\Controllers\Customer\CustomerProfileController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\OrderAdminController;
 use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\InstagramPostController;
 use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\RefundInventoryController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Models\Order;
 use App\Mail\OrderWaitingPayment;
@@ -79,6 +81,8 @@ Route::prefix('orders')->group(function () {
 
 Route::post('/midtrans/webhook', [PaymentController::class, 'handleWebhook']);
 
+Route::get('/myprofile', [CustomerProfileController::class, 'profile'])->name('customer.profile');
+Route::post('/myprofile', [CustomerProfileController::class, 'updateProfile'])->name('customer.profile.update');
 
 // Customer Retur Routes
 Route::get('/customer/retur', [ReturCustController::class, 'index'])->name('customer.retur.index');
@@ -185,6 +189,18 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::get('/instagram/create', [InstagramPostController::class, 'create'])->name('instagram.create');
     Route::post('/instagram/post', [InstagramPostController::class, 'store'])->name('instagram.post');
+
+    Route::get('/refund-inventory', [RefundInventoryController::class, 'index'])
+        ->name('refund-inventory');
+
+    Route::get('/refund-inventory/{id}/detail', [RefundInventoryController::class, 'detail'])
+        ->name('refund-inventory.detail');
+
+    Route::post('/refund-inventory/{id}/approve', [RefundInventoryController::class, 'approve'])
+        ->name('refund-inventory.approve');
+
+    Route::post('/refund-inventory/{id}/reject', [RefundInventoryController::class, 'reject'])
+        ->name('refund-inventory.reject');
 
     // Reports (Owner Only)
     Route::prefix('reports')->name('reports.')->group(function () {
